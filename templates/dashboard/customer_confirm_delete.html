@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Изтриване на клиент - Автосервиз</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-wrench me-2"></i>Автосервиз
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{% url 'dashboard' %}">
+                    <i class="fas fa-home me-1"></i>Начало
+                </a>
+                <a class="nav-link" href="{% url 'klienti' %}">
+                    <i class="fas fa-users me-1"></i>Клиенти
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Потвърждение за изтриване</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-warning me-2"></i>
+                            <strong>Внимание!</strong> Това действие не може да бъде отменено.
+                        </div>
+                        
+                        <p class="lead">Сигурни ли сте, че искате да изтриете следния клиент?</p>
+                        
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ customer.customer_name }}</h6>
+                                <p class="card-text mb-1"><strong>Номер:</strong> {{ customer.number }}</p>
+                                <p class="card-text mb-1"><strong>Телефон:</strong> {{ customer.telno|default:"-" }}</p>
+                                <p class="card-text mb-1"><strong>БУЛСТАТ:</strong> {{ customer.customer_bulstat|default:"-" }}</p>
+                                <p class="card-text mb-0"><strong>Адрес:</strong> {{ customer.full_address|default:"-" }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger me-2">
+                                    <i class="fas fa-trash me-1"></i>Да, изтрий клиента
+                                </button>
+                            </form>
+                            <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i>Отказ
+                            </a>
+                            <a href="{% url 'klienti' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-list me-1"></i>Към списъка
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

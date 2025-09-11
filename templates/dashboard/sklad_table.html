@@ -1,0 +1,52 @@
+{% load sklad_filters %}
+{% for item in page_obj %}
+    <tr>
+        <td>
+            <strong>{{ item.article_number }}</strong>
+        </td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.unit }}</td>
+        <td>{{ item.quantity|smart_quantity }}</td>
+        <td>{{ item.purchase_price|floatformat:2 }} лв.</td>
+        <td>
+            <strong>{{ item.total_value|floatformat:2 }} лв.</strong>
+        </td>
+        <td>
+            {% if item.is_active %}
+                <span class="badge bg-success">Активен</span>
+            {% else %}
+                <span class="badge bg-secondary">Неактивен</span>
+            {% endif %}
+        </td>
+        <td>
+            <div class="btn-group" role="group">
+                <a href="{% url 'sklad_detail' item.pk %}" 
+                   class="btn btn-sm btn-outline-info" 
+                   title="Преглед">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'sklad_edit' item.pk %}" 
+                   class="btn btn-sm btn-outline-warning" 
+                   title="Редактирай">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'sklad_delete' item.pk %}" 
+                   class="btn btn-sm btn-outline-danger" 
+                   title="Изтрий">
+                    <i class="fas fa-trash"></i>
+                </a>
+            </div>
+        </td>
+    </tr>
+{% empty %}
+    <tr>
+        <td colspan="8" class="text-center py-5">
+            <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Няма намерени артикули</h5>
+            <p class="text-muted">Опитайте с различни критерии за търсене</p>
+            <a href="{% url 'sklad_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Създай първи артикул
+            </a>
+        </td>
+    </tr>
+{% endfor %}

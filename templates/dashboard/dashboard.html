@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Автосервиз - Главно табло</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: none;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+            color: inherit;
+        }
+        .dashboard-card i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .dashboard-card h4 {
+            font-weight: 600;
+            margin: 0;
+        }
+        .weekly-planner {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            margin-top: 2rem;
+            overflow: hidden;
+        }
+        .calendar-header {
+            background: #f8f9fa;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dee2e6;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            overflow: hidden;
+            margin-top: 0;
+        }
+        .calendar-container::-webkit-scrollbar {
+            display: none;
+        }
+        .calendar-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 60px repeat(7, 1fr);
+            flex: 1;
+            overflow-y: auto;
+        }
+        .calendar-grid::-webkit-scrollbar {
+            display: none;
+        }
+        .calendar-grid {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .all-day-events {
+            display: grid;
+            grid-template-columns: 60px repeat(7, 1fr);
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            min-height: 100px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .all-day-events::-webkit-scrollbar {
+            display: none;
+        }
+        .all-day-events {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .time-column {
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            color: #6c757d;
+            display: flex;
+            flex-direction: column;
+        }
+        .time-column .time-slot {
+            height: 60px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
+            font-weight: 500;
+            position: relative;
+            background-color: #f8f9fa;
+            box-sizing: border-box;
+        }
+        .time-column .time-slot::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: #e0e0e0;
+        }
+        .day-header {
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            padding: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            height: 58px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+        .day-header.today {
+            background: #007bff;
+            color: white;
+        }
+        .day-column {
+            border-right: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            min-height: 400px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .day-column .time-slot {
+            min-height: 60px;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
+            position: relative;
+            font-size: 0.8rem;
+            color: #6c757d;
+            padding: 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            box-sizing: border-box;
+            background-color: #fafafa;
+            overflow: visible;
+        }
+        .event-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 2px;
+        }
+        .day-column .time-slot:hover {
+            background-color: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+        .all-day-column {
+            border-right: 1px solid #dee2e6;
+            padding: 0.5rem;
+            min-height: 100px;
+        }
+        .all-day-event {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .all-day-event:hover {
+            opacity: 0.8;
+        }
+        .all-day-title {
+            font-weight: bold;
+            font-size: 0.75rem;
+            margin-bottom: 0.1rem;
+        }
+        .all-day-type {
+            font-size: 0.7rem;
+            opacity: 0.9;
+        }
+        .all-day-reason {
+            font-size: 0.65rem;
+            opacity: 0.8;
+            margin-top: 0.1rem;
+        }
+        .event-item {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 3px;
+            padding: 0.2rem 0.4rem;
+            margin: 0;
+            font-size: 0.65rem;
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+            min-width: 0;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .spanning-event {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 5 !important;
+            margin: 0 !important;
+            max-width: none !important;
+            flex: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: flex-start !important;
+            padding: 0.2rem 0.4rem !important;
+            border-radius: 4px !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+            color: white !important;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.3) !important;
+            cursor: pointer !important;
+            transition: opacity 0.2s !important;
+        }
+        .spanning-event:hover {
+            opacity: 0.8 !important;
+        }
+        .event-item:hover {
+            opacity: 0.8;
+        }
+        .event-title {
+            font-weight: bold;
+            font-size: 0.65rem;
+            line-height: 1.2;
+            margin-bottom: 0.1rem;
+        }
+        .event-time {
+            font-size: 0.55rem;
+            opacity: 0.9;
+            line-height: 1.1;
+        }
+        .event-customer {
+            font-size: 0.5rem;
+            opacity: 0.8;
+            margin-top: 0.05rem;
+            line-height: 1.1;
+        }
+        .day-number {
+            padding: 0.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .day-number.today {
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0.5rem auto;
+        }
+        .time-slot {
+            height: 60px;
+            border-bottom: 1px solid #f1f3f4;
+            position: relative;
+            font-size: 0.8rem;
+            color: #6c757d;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .time-slot:hover {
+            background-color: #f8f9fa;
+        }
+        .event {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+            border-radius: 3px;
+            padding: 0.25rem 0.5rem;
+            margin: 0.1rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .event:hover {
+            background: #bbdefb;
+        }
+        .event.meeting {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .event.appointment {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+        .event.break {
+            background: #fce4ec;
+            border-left-color: #e91e63;
+        }
+        .week-navigation {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+        .week-navigation h3 {
+            text-align: center;
+            margin: 0;
+            grid-column: 2;
+        }
+        .week-navigation .btn-week:first-child {
+            grid-column: 1;
+            justify-self: start;
+        }
+        .week-navigation .btn-week:last-child {
+            grid-column: 3;
+            justify-self: end;
+        }
+        .btn-week {
+            background: #6c757d;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+        .btn-week:hover {
+            background: #5a6268;
+            color: white;
+        }
+        .event-modal .modal-dialog {
+            max-width: 600px;
+        }
+        .event-details {
+            padding: 1rem 0;
+        }
+        .event-detail-row {
+            display: flex;
+            margin-bottom: 1rem;
+            align-items: flex-start;
+        }
+        .event-detail-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 120px;
+            margin-right: 1rem;
+        }
+        .event-detail-value {
+            flex: 1;
+            color: #6c757d;
+        }
+        .event-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .event-type-meeting {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        .event-type-appointment {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        .event-type-maintenance {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        .event-type-inspection {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+        .event-type-delivery {
+            background-color: #e8f5e8;
+            color: #388e3c;
+        }
+        .event-type-other {
+            background-color: #f5f5f5;
+            color: #616161;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <h1><i class="fas fa-wrench me-3"></i>Автосервиз - Главно табло</h1>
+                    <p class="lead">Система за управление на автосервиз</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Main Dashboard Cards -->
+        <div class="row g-4">
+            <div class="col-md-4 col-sm-6">
+                <a href="{% url 'klienti' %}" class="dashboard-card">
+                    <i class="fas fa-users text-primary"></i>
+                    <h4>Клиенти</h4>
+                    <small class="text-muted">Управление на клиенти</small>
+                </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <a href="{% url 'fakturi' %}" class="dashboard-card">
+                    <i class="fas fa-file-invoice text-success"></i>
+                    <h4>Фактури</h4>
+                    <small class="text-muted">Създаване и управление на фактури</small>
+                </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <a href="{% url 'poruchki' %}" class="dashboard-card">
+                    <i class="fas fa-clipboard-list text-warning"></i>
+                    <h4>Поръчки</h4>
+                    <small class="text-muted">Нови поръчки за ремонт</small>
+                </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <a href="{% url 'pregled_poruchki' %}" class="dashboard-card">
+                    <i class="fas fa-search text-info"></i>
+                    <h4>Преглед на поръчки</h4>
+                    <small class="text-muted">Проследяване на поръчки</small>
+                </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <a href="{% url 'slujiteli' %}" class="dashboard-card">
+                    <i class="fas fa-user-tie text-danger"></i>
+                    <h4>Служители</h4>
+                    <small class="text-muted">Управление на персонал</small>
+                </a>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <a href="{% url 'sklad' %}" class="dashboard-card">
+                    <i class="fas fa-warehouse text-secondary"></i>
+                    <h4>Склад</h4>
+                    <small class="text-muted">Управление на части и материали</small>
+                </a>
+            </div>
+        </div>
+
+        <!-- Weekly Planner -->
+        <div class="weekly-planner">
+            <div class="calendar-header">
+                <div class="week-navigation">
+                    <button class="btn btn-week" onclick="changeWeek(-1)">
+                        <i class="fas fa-chevron-left"></i> Предишна седмица
+                    </button>
+                    <h3 id="week-title">Седмичен план</h3>
+                    <button class="btn btn-week" onclick="changeWeek(1)">
+                        Следваща седмица <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="calendar-container">
+                <!-- All-day events section -->
+                <div class="all-day-events" id="all-day-events">
+                    <!-- All-day events will be loaded here -->
+                </div>
+                <!-- Time-based calendar grid -->
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- Calendar will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Details Modal -->
+    <div class="modal fade event-modal" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventDetailsModalLabel">Детайли за събитието</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="event-details" id="eventDetailsContent">
+                        <!-- Event details will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+                    <button type="button" class="btn btn-primary" id="editEventBtn" onclick="editEvent()">Редактирай</button>
+                    <button type="button" class="btn btn-danger" id="deleteEventBtn" onclick="deleteEvent()">Изтрий</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Event Modal -->
+    <div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editEventModalLabel">Редактиране на събитие</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editEventForm">
+                        <div class="mb-3">
+                            <label for="editEventTitle" class="form-label">Заглавие</label>
+                            <input type="text" class="form-control" id="editEventTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEventType" class="form-label">Тип събитие</label>
+                            <select class="form-select" id="editEventType">
+                                <option value="meeting">Среща</option>
+                                <option value="appointment">Записване</option>
+                                <option value="maintenance">Поддръжка</option>
+                                <option value="inspection">Преглед</option>
+                                <option value="delivery">Доставка</option>
+                                <option value="other">Друго</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEventDate" class="form-label">Дата</label>
+                            <input type="date" class="form-control" id="editEventDate" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editEventStartTime" class="form-label">Начало</label>
+                                    <input type="time" class="form-control" id="editEventStartTime" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editEventEndTime" class="form-label">Край</label>
+                                    <input type="time" class="form-control" id="editEventEndTime" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEventCustomer" class="form-label">Клиент</label>
+                            <input type="text" class="form-control" id="editEventCustomer">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEventDescription" class="form-label">Описание</label>
+                            <textarea class="form-control" id="editEventDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="editEventAllDay">
+                            <label class="form-check-label" for="editEventAllDay">Цял ден</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditedEvent()">Запази промените</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentWeek = 0;
+        let currentEventData = null; // Store current event data for editing/deleting
+        let currentModal = null; // Store current modal instance
+
+        function loadAllDayEvents(data) {
+            const allDayEventsContainer = document.getElementById('all-day-events');
+            allDayEventsContainer.innerHTML = '';
+            
+            // Create time column for all-day events
+            const timeColumn = document.createElement('div');
+            timeColumn.className = 'time-column';
+            timeColumn.innerHTML = '<div style="padding: 0.5rem; font-weight: bold;">Цял ден</div>';
+            allDayEventsContainer.appendChild(timeColumn);
+            
+            // Create day columns for all-day events
+            data.week_days.forEach(day => {
+                const dayColumn = document.createElement('div');
+                dayColumn.className = 'all-day-column';
+                
+                // Add days off for this day
+                if (data.days_off && data.days_off[day.date]) {
+                    data.days_off[day.date].forEach(dayOff => {
+                        const dayOffElement = document.createElement('div');
+                        dayOffElement.className = 'all-day-event';
+                        dayOffElement.style.backgroundColor = dayOff.color;
+                        dayOffElement.innerHTML = `
+                            <div class="all-day-title">${dayOff.employee_name}</div>
+                            <div class="all-day-type">${dayOff.type}</div>
+                            ${dayOff.reason ? `<div class="all-day-reason">${dayOff.reason}</div>` : ''}
+                        `;
+                        dayOffElement.title = `${dayOff.employee_name} - ${dayOff.type}${dayOff.reason ? ': ' + dayOff.reason : ''}`;
+                        dayColumn.appendChild(dayOffElement);
+                    });
+                }
+                
+                allDayEventsContainer.appendChild(dayColumn);
+            });
+        }
+
+        function loadWeek(weekOffset) {
+            fetch(`/get-weekly-planner/?week=${weekOffset}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Store current week data globally
+                    window.currentWeekData = data;
+                    
+                    // Load all-day events
+                    loadAllDayEvents(data);
+                    
+                    const calendarGrid = document.getElementById('calendar-grid');
+                    calendarGrid.innerHTML = '';
+                    
+                    // Create time column
+                    const timeColumn = document.createElement('div');
+                    timeColumn.className = 'time-column';
+                    timeColumn.innerHTML = `
+                        <div style="height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #495057; background: #f8f9fa; border-right: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6; box-sizing: border-box; font-size: 0.9rem;">Време</div>
+                    `;
+                    
+                    // Add time slots using the same structure as day columns
+                    for (let hour = 8; hour < 22; hour++) {
+                        const timeSlot = document.createElement('div');
+                        timeSlot.className = 'time-slot';
+                        timeSlot.innerHTML = hour < 10 ? `0${hour}:00` : `${hour}:00`;
+                        timeSlot.style.minHeight = '60px'; // Set minimum height for time column
+                        timeSlot.id = `time-slot-${hour}`; // Add ID for height syncing
+                        timeColumn.appendChild(timeSlot);
+                    }
+                    calendarGrid.appendChild(timeColumn);
+                    
+                    // First pass: collect all events and calculate maximum heights for each hour
+                    const hourMaxHeights = {};
+                    const allEventsByHour = {};
+                    
+                    data.week_days.forEach(day => {
+                        for (let hour = 8; hour < 22; hour++) {
+                            const events = getEventsForHour(day.date, hour);
+                            if (events.length > 0) {
+                                const baseHeight = 60; // Base height for one event
+                                const eventHeight = 35; // Height per additional event
+                                const dynamicHeight = baseHeight + (events.length - 1) * eventHeight;
+                                
+                                if (!hourMaxHeights[hour] || dynamicHeight > hourMaxHeights[hour]) {
+                                    hourMaxHeights[hour] = dynamicHeight;
+                                }
+                                
+                                allEventsByHour[`${day.date}-${hour}`] = events;
+                            }
+                        }
+                    });
+                    
+                    // Create day columns
+                    data.week_days.forEach(day => {
+                        const dayColumn = document.createElement('div');
+                        dayColumn.className = 'day-column';
+                        
+                        const dayHeader = document.createElement('div');
+                        dayHeader.className = `day-header ${day.is_today ? 'today' : ''}`;
+                        dayHeader.style.height = '58px';
+                        dayHeader.innerHTML = `
+                            <div style="font-size: 0.9rem; font-weight: 600; line-height: 1.2;">${day.day_name}</div>
+                            <div class="day-number ${day.is_today ? 'today' : ''}" style="font-size: 1.1rem; font-weight: bold; margin-top: 2px; line-height: 1.2;">${day.day_number}</div>
+                        `;
+                        dayColumn.appendChild(dayHeader);
+                        
+                        // Days off are now handled in the all-day events section
+                        
+                        // Add time slots - use the same structure as time column
+                        for (let hour = 8; hour < 22; hour++) {
+                            const timeSlot = document.createElement('div');
+                            timeSlot.className = 'time-slot';
+                            timeSlot.onclick = () => selectTimeSlot(day.date, hour);
+                            
+                            // Get all events that occur during this hour (including multi-hour events)
+                            const events = allEventsByHour[`${day.date}-${hour}`] || [];
+                            
+                            // Set time slot height to the maximum height for this hour across all days
+                            const maxHeight = hourMaxHeights[hour] || 60;
+                            timeSlot.style.height = `${maxHeight}px`;
+                            timeSlot.style.minHeight = `${maxHeight}px`;
+                            
+                            if (events.length > 0) {
+                                // Create event container
+                                const eventContainer = document.createElement('div');
+                                eventContainer.className = 'event-container';
+                                eventContainer.style.cssText = `
+                                    position: relative;
+                                    width: 100%;
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 2px;
+                                    padding: 2px;
+                                `;
+                                
+                                // Sort events by start time
+                                events.sort((a, b) => a.start_time.localeCompare(b.start_time));
+                                
+                                // Define color palette for different events
+                                const colorPalette = [
+                                    '#4caf50', // Green
+                                    '#ff9800', // Orange
+                                    '#2196f3', // Blue
+                                    '#9c27b0', // Purple
+                                    '#f44336', // Red
+                                    '#00bcd4', // Cyan
+                                    '#ffc107', // Yellow
+                                    '#795548', // Brown
+                                    '#607d8b', // Blue Grey
+                                    '#e91e63', // Pink
+                                    '#8bc34a', // Light Green
+                                    '#ff5722', // Deep Orange
+                                    '#3f51b5', // Indigo
+                                    '#e91e63', // Pink
+                                    '#009688', // Teal
+                                    '#cddc39', // Lime
+                                    '#ffeb3b', // Yellow
+                                    '#ff9800', // Orange
+                                    '#9c27b0', // Purple
+                                    '#607d8b'  // Blue Grey
+                                ];
+                                
+                                events.forEach((event, index) => {
+                                    const eventId = event.id || `${day.date}-${hour}-${index}`;
+                                    
+                                    const eventElement = document.createElement('div');
+                                    eventElement.className = 'event-item';
+                                    
+                                    // Assign unique color - always use index-based color for variety
+                                    const eventColor = colorPalette[index % colorPalette.length];
+                                    
+                                    // Apply consistent styling for all events
+                                    eventElement.style.cssText = `
+                                        background-color: ${eventColor};
+                                        border-radius: 3px;
+                                        padding: 0.2rem 0.4rem;
+                                        margin: 0;
+                                        font-size: 0.65rem;
+                                        color: white;
+                                        cursor: pointer;
+                                        text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+                                        min-width: 0;
+                                        width: 100%;
+                                        white-space: nowrap;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                        position: relative;
+                                        z-index: 1;
+                                        flex-shrink: 0;
+                                        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                                        border: 1px solid rgba(255,255,255,0.2);
+                                    `;
+                                    
+                                    // Show event details - use display times for this hour
+                                    eventElement.innerHTML = `
+                                        <div class="event-title">${event.title}</div>
+                                        <div class="event-time">${event.display_start_time}-${event.display_end_time}</div>
+                                        ${event.customer ? `<div class="event-customer">${event.customer}</div>` : ''}
+                                    `;
+                                    
+                                    eventElement.onclick = (e) => {
+                                        e.stopPropagation();
+                                        // Use original event ID for details modal
+                                        showEventDetails(event.original_id || event.id);
+                                    };
+                                    eventElement.title = `${event.title} - ${event.original_start_time}-${event.original_end_time}`;
+                                    
+                                    eventContainer.appendChild(eventElement);
+                                });
+                                
+                                timeSlot.appendChild(eventContainer);
+                            } else {
+                                // If no events, show empty time slot
+                                timeSlot.innerHTML = '';
+                            }
+                            
+                            dayColumn.appendChild(timeSlot);
+                        }
+                        
+                        calendarGrid.appendChild(dayColumn);
+                    });
+                    
+                    updateWeekTitle(weekOffset);
+                    
+                    // Apply the calculated heights to time column
+                    for (let hour = 8; hour < 22; hour++) {
+                        const timeSlot = document.getElementById(`time-slot-${hour}`);
+                        if (timeSlot) {
+                            const maxHeight = hourMaxHeights[hour] || 60;
+                            timeSlot.style.height = `${maxHeight}px`;
+                            timeSlot.style.minHeight = `${maxHeight}px`;
+                        }
+                    }
+                });
+        }
+
+
+
+
+        function getEventsForHour(date, hour) {
+            // Get all events that occur during this hour (including multi-hour events)
+            if (window.currentWeekData && window.currentWeekData.events && window.currentWeekData.events[date]) {
+                const events = [];
+                
+                window.currentWeekData.events[date].forEach(event => {
+                    const eventStartHour = parseInt(event.start_time.split(':')[0]);
+                    const eventEndHour = parseInt(event.end_time.split(':')[0]);
+                    
+                    // Check if this event spans through the current hour
+                    if (eventStartHour <= hour && eventEndHour > hour) {
+                        // Create a duplicate event for this hour
+                        const eventForThisHour = {
+                            ...event,
+                            // Store original ID for modal access
+                            original_id: event.id,
+                            // Create unique ID for this hour instance
+                            id: `${event.id}-${hour}`,
+                            // Update the time display to show the current hour
+                            display_start_time: `${hour.toString().padStart(2, '0')}:00`,
+                            display_end_time: `${(hour + 1).toString().padStart(2, '0')}:00`,
+                            // Keep original times for reference
+                            original_start_time: event.start_time,
+                            original_end_time: event.end_time,
+                            // Mark if this is the starting hour
+                            is_starting_hour: eventStartHour === hour
+                        };
+                        events.push(eventForThisHour);
+                    }
+                });
+                
+                return events;
+            }
+            return [];
+        }
+
+        function selectTimeSlot(date, hour) {
+            console.log(`Selected time slot: ${date} at ${hour}:00`);
+            // Create new event modal
+            showEventModal(date, hour);
+        }
+
+        function showEventModal(date, hour) {
+            // Create modal for event creation
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Създаване на събитие</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="eventForm">
+                                <div class="mb-3">
+                                    <label for="eventTitle" class="form-label">Заглавие</label>
+                                    <input type="text" class="form-control" id="eventTitle" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="eventType" class="form-label">Тип събитие</label>
+                                    <select class="form-select" id="eventType">
+                                        <option value="meeting">Среща</option>
+                                        <option value="appointment">Записване</option>
+                                        <option value="maintenance">Поддръжка</option>
+                                        <option value="inspection">Преглед</option>
+                                        <option value="delivery">Доставка</option>
+                                        <option value="other">Друго</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="eventDate" class="form-label">Дата</label>
+                                    <input type="date" class="form-control" id="eventDate" value="${date}" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="eventStartTime" class="form-label">Начало</label>
+                                            <input type="time" class="form-control" id="eventStartTime" value="${hour.toString().padStart(2, '0')}:00" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="eventEndTime" class="form-label">Край</label>
+                                            <input type="time" class="form-control" id="eventEndTime" value="${(hour + 1).toString().padStart(2, '0')}:00" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="eventDescription" class="form-label">Описание</label>
+                                    <textarea class="form-control" id="eventDescription" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="eventAllDay">
+                                    <label class="form-check-label" for="eventAllDay">Цял ден</label>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+                            <button type="button" class="btn btn-primary" onclick="saveEvent()">Запази</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            currentModal = bsModal; // Store modal reference
+            bsModal.show();
+            
+            // Remove modal from DOM when hidden
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+                currentModal = null; // Clear modal reference
+            });
+        }
+
+        function saveEvent() {
+            // Prevent multiple submissions
+            const saveButton = document.querySelector('button[onclick="saveEvent()"]');
+            if (saveButton.disabled) {
+                return; // Already processing
+            }
+            
+            // Disable the save button to prevent multiple clicks
+            saveButton.disabled = true;
+            saveButton.textContent = 'Запазване...';
+            
+            const form = document.getElementById('eventForm');
+            const formData = new FormData(form);
+            
+            const eventData = {
+                title: document.getElementById('eventTitle').value,
+                event_type: document.getElementById('eventType').value,
+                start_date: document.getElementById('eventDate').value,
+                start_time: document.getElementById('eventStartTime').value,
+                end_time: document.getElementById('eventEndTime').value,
+                description: document.getElementById('eventDescription').value,
+                is_all_day: document.getElementById('eventAllDay').checked
+            };
+            
+            // Send to server
+            fetch('/create-event/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(eventData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal using stored reference
+                    if (currentModal) {
+                        currentModal.hide();
+                    }
+                    
+                    // Reload calendar
+                    loadWeek(currentWeek);
+                    
+                    // Show success message
+                    alert('Събитието е успешно създадено!');
+                } else {
+                    alert('Грешка при създаване на събитието: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Грешка при създаване на събитието');
+            })
+            .finally(() => {
+                // Re-enable the save button
+                saveButton.disabled = false;
+                saveButton.textContent = 'Запази';
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function changeWeek(direction) {
+            currentWeek += direction;
+            loadWeek(currentWeek);
+        }
+
+        function selectDay(date) {
+            // Remove previous selection
+            document.querySelectorAll('.day-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked day
+            event.target.closest('.day-card').classList.add('selected');
+            
+            console.log('Selected day:', date);
+            // Here you can add logic to load day-specific data
+        }
+
+        function updateWeekTitle(weekOffset) {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay() + (weekOffset * 7));
+            
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            
+            const title = document.getElementById('week-title');
+            // Show month and year for the current week
+            const monthYear = startOfWeek.toLocaleDateString('bg-BG', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
+            title.textContent = monthYear;
+        }
+
+        function showEventDetails(eventId) {
+            // Debug: Log the current week data structure
+            console.log('Looking for event ID:', eventId);
+            console.log('Current week data:', window.currentWeekData);
+            
+            // Find the event data from current week data
+            let eventData = null;
+            
+            // First try to find by original ID
+            if (window.currentWeekData && window.currentWeekData.events) {
+                for (const date in window.currentWeekData.events) {
+                    const events = window.currentWeekData.events[date];
+                    console.log('Events for date', date, ':', events);
+                    const event = events.find(e => e.id == eventId || e.id === eventId);
+                    if (event) {
+                        eventData = event;
+                        break;
+                    }
+                }
+            }
+            
+            // If not found by ID, try to parse the generated ID (date-hour-index)
+            if (!eventData && eventId.includes('-')) {
+                const parts = eventId.split('-');
+                if (parts.length >= 3) {
+                    const date = parts[0];
+                    const hour = parseInt(parts[1]);
+                    const index = parseInt(parts[2]);
+                    
+                    if (window.currentWeekData && window.currentWeekData.events && window.currentWeekData.events[date]) {
+                        const events = getEventsForTime(date, hour);
+                        if (events[index]) {
+                            eventData = events[index];
+                        }
+                    }
+                }
+            }
+            
+            if (!eventData) {
+                console.error('Event not found:', eventId);
+                console.log('Available events:', window.currentWeekData?.events);
+                return;
+            }
+            
+            // Store current event data for editing/deleting
+            currentEventData = eventData;
+            
+            // Populate modal with event details
+            const modalContent = document.getElementById('eventDetailsContent');
+            modalContent.innerHTML = `
+                <div class="event-detail-row">
+                    <div class="event-detail-label">Заглавие:</div>
+                    <div class="event-detail-value">${eventData.title}</div>
+                </div>
+                <div class="event-detail-row">
+                    <div class="event-detail-label">Тип:</div>
+                    <div class="event-detail-value">
+                        <span class="event-type-badge event-type-${eventData.event_type}">
+                            ${getEventTypeLabel(eventData.event_type)}
+                        </span>
+                    </div>
+                </div>
+                <div class="event-detail-row">
+                    <div class="event-detail-label">Дата:</div>
+                    <div class="event-detail-value">${formatDate(eventData.start_date)}</div>
+                </div>
+                <div class="event-detail-row">
+                    <div class="event-detail-label">Време:</div>
+                    <div class="event-detail-value">${eventData.start_time} - ${eventData.end_time}</div>
+                </div>
+                ${eventData.customer ? `
+                <div class="event-detail-row">
+                    <div class="event-detail-label">Клиент:</div>
+                    <div class="event-detail-value">${eventData.customer}</div>
+                </div>
+                ` : ''}
+                ${eventData.description ? `
+                <div class="event-detail-row">
+                    <div class="event-detail-label">Описание:</div>
+                    <div class="event-detail-value">${eventData.description}</div>
+                </div>
+                ` : ''}
+                <div class="event-detail-row">
+                    <div class="event-detail-label">Цял ден:</div>
+                    <div class="event-detail-value">${eventData.is_all_day ? 'Да' : 'Не'}</div>
+                </div>
+            `;
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
+            modal.show();
+        }
+        
+        function getEventTypeLabel(type) {
+            const labels = {
+                'meeting': 'Среща',
+                'appointment': 'Записване',
+                'maintenance': 'Поддръжка',
+                'inspection': 'Преглед',
+                'delivery': 'Доставка',
+                'other': 'Друго'
+            };
+            return labels[type] || 'Друго';
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('bg-BG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function editEvent() {
+            if (!currentEventData) {
+                console.error('No event data available for editing');
+                return;
+            }
+
+            // Close the details modal
+            const detailsModal = bootstrap.Modal.getInstance(document.getElementById('eventDetailsModal'));
+            detailsModal.hide();
+
+            // Populate edit form with current event data
+            document.getElementById('editEventTitle').value = currentEventData.title || '';
+            document.getElementById('editEventType').value = currentEventData.event_type || 'other';
+            document.getElementById('editEventDate').value = currentEventData.start_date || '';
+            document.getElementById('editEventStartTime').value = currentEventData.start_time || '';
+            document.getElementById('editEventEndTime').value = currentEventData.end_time || '';
+            document.getElementById('editEventCustomer').value = currentEventData.customer || '';
+            document.getElementById('editEventDescription').value = currentEventData.description || '';
+            document.getElementById('editEventAllDay').checked = currentEventData.is_all_day || false;
+
+            // Show edit modal
+            const editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+            editModal.show();
+        }
+
+        function saveEditedEvent() {
+            if (!currentEventData) {
+                console.error('No event data available for saving');
+                return;
+            }
+
+            const formData = {
+                id: currentEventData.id,
+                title: document.getElementById('editEventTitle').value,
+                event_type: document.getElementById('editEventType').value,
+                start_date: document.getElementById('editEventDate').value,
+                start_time: document.getElementById('editEventStartTime').value,
+                end_time: document.getElementById('editEventEndTime').value,
+                customer: document.getElementById('editEventCustomer').value,
+                description: document.getElementById('editEventDescription').value,
+                is_all_day: document.getElementById('editEventAllDay').checked
+            };
+
+            // Send update request to server
+            fetch('/update-event/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close edit modal
+                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editEventModal'));
+                    editModal.hide();
+                    
+                    // Reload calendar
+                    loadWeek(currentWeek);
+                    
+                    alert('Събитието е успешно обновено!');
+                } else {
+                    alert('Грешка при обновяване на събитието: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Грешка при обновяване на събитието');
+            });
+        }
+
+        function deleteEvent() {
+            if (!currentEventData) {
+                console.error('No event data available for deletion');
+                return;
+            }
+
+            // Confirm deletion
+            if (!confirm('Сигурни ли сте, че искате да изтриете това събитие?')) {
+                return;
+            }
+
+            const deleteData = {
+                id: currentEventData.id
+            };
+
+            // Send delete request to server
+            fetch('/delete-event/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(deleteData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close details modal
+                    const detailsModal = bootstrap.Modal.getInstance(document.getElementById('eventDetailsModal'));
+                    detailsModal.hide();
+                    
+                    // Reload calendar
+                    loadWeek(currentWeek);
+                    
+                    alert('Събитието е успешно изтрито!');
+                } else {
+                    alert('Грешка при изтриване на събитието: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Грешка при изтриване на събитието');
+            });
+        }
+
+        function cleanupDuplicates() {
+            if (!confirm('Сигурни ли сте, че искате да премахнете всички дублирани събития? Това действие не може да бъде отменено.')) {
+                return;
+            }
+            
+            fetch('/cleanup-duplicate-events/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    // Reload calendar to show cleaned up events
+                    loadWeek(currentWeek);
+                } else {
+                    alert('Грешка при премахване на дублираните събития: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Грешка при премахване на дублираните събития');
+            });
+        }
+
+        // Load current week on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWeek(0);
+        });
+    </script>
+</body>
+</html>

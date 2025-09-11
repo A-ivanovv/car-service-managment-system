@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Служители - Автосервиз</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-wrench me-2"></i>Автосервиз
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{% url 'dashboard' %}">
+                    <i class="fas fa-home me-1"></i>Начало
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="fas fa-user-tie me-2"></i>Служители</h2>
+                        <p class="text-muted">Управление на персонал</p>
+                    </div>
+                    <a href="{% url 'employee_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Нов служител
+                    </a>
+                </div>
+
+                <!-- Search and Filter Form -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-6">
+                                {{ search_form.search }}
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    {{ search_form.active_only }}
+                                    <label class="form-check-label" for="{{ search_form.active_only.id_for_label }}">
+                                        {{ search_form.active_only.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-search me-1"></i>Търси
+                                </button>
+                                <a href="{% url 'slujiteli' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Изчисти
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ total_employees }}</h4>
+                                        <p class="mb-0">Общо служители</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-users fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ active_employees }}</h4>
+                                        <p class="mb-0">Активни</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-user-check fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee List -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Списък със служители</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if employees %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Име</th>
+                                            <th>Дата на назначаване</th>
+                                            <th>Почасова ставка</th>
+                                            <th>Статус</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for employee in employees %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ employee.full_name }}</strong>
+                                                </td>
+                                                <td>{{ employee.hire_date|date:"d.m.Y"|default:"-" }}</td>
+                                                <td>{{ employee.hourly_rate|default:"-" }} лв.</td>
+                                                <td>
+                                                    {% if employee.is_active %}
+                                                        <span class="badge bg-success">Активен</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Неактивен</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{% url 'employee_detail' employee.pk %}" class="btn btn-outline-info" title="Преглед">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{% url 'employee_edit' employee.pk %}" class="btn btn-outline-primary" title="Редактирай">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <a href="{% url 'employee_delete' employee.pk %}" class="btn btn-outline-danger" title="Изтрий">
+                                                            <i class="fas fa-trash"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            {% if employees.has_other_pages %}
+                                <nav aria-label="Employee pagination">
+                                    <ul class="pagination justify-content-center">
+                                        {% if employees.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page=1">&laquo; Първа</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ employees.previous_page_number }}">Предишна</a>
+                                            </li>
+                                        {% endif %}
+
+                                        <li class="page-item active">
+                                            <span class="page-link">
+                                                Страница {{ employees.number }} от {{ employees.paginator.num_pages }}
+                                            </span>
+                                        </li>
+
+                                        {% if employees.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ employees.next_page_number }}">Следваща</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ employees.paginator.num_pages }}">Последна &raquo;</a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-user-tie fa-3x mb-3"></i>
+                                <h5>Няма намерени служители</h5>
+                                <p>Започнете като създадете първия служител.</p>
+                                <a href="{% url 'employee_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Нов служител
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

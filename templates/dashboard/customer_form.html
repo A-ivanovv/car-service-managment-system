@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Автосервиз</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-wrench me-2"></i>Автосервиз
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{% url 'dashboard' %}">
+                    <i class="fas fa-home me-1"></i>Начало
+                </a>
+                <a class="nav-link" href="{% url 'klienti' %}">
+                    <i class="fas fa-users me-1"></i>Клиенти
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-user me-2"></i>{{ title }}</h2>
+                    <a href="{% url 'klienti' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Назад към клиентите
+                    </a>
+                </div>
+
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Информация за клиента</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <!-- Basic Information -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Основна информация</h6>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="{{ form.number.id_for_label }}" class="form-label">{{ form.number.label }}</label>
+                                    {{ form.number }}
+                                    {% if form.number.errors %}
+                                        <div class="text-danger small">{{ form.number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-10">
+                                    <label for="{{ form.customer_name.id_for_label }}" class="form-label">{{ form.customer_name.label }} *</label>
+                                    {{ form.customer_name }}
+                                    {% if form.customer_name.errors %}
+                                        <div class="text-danger small">{{ form.customer_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Address Information -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Адресна информация</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.customer_address_1.id_for_label }}" class="form-label">{{ form.customer_address_1.label }}</label>
+                                    {{ form.customer_address_1 }}
+                                    {% if form.customer_address_1.errors %}
+                                        <div class="text-danger small">{{ form.customer_address_1.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.customer_address_2.id_for_label }}" class="form-label">{{ form.customer_address_2.label }}</label>
+                                    {{ form.customer_address_2 }}
+                                    {% if form.customer_address_2.errors %}
+                                        <div class="text-danger small">{{ form.customer_address_2.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mt-3">
+                                    <label for="{{ form.res_address_1.id_for_label }}" class="form-label">{{ form.res_address_1.label }}</label>
+                                    {{ form.res_address_1 }}
+                                    {% if form.res_address_1.errors %}
+                                        <div class="text-danger small">{{ form.res_address_1.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mt-3">
+                                    <label for="{{ form.res_address_2.id_for_label }}" class="form-label">{{ form.res_address_2.label }}</label>
+                                    {{ form.res_address_2 }}
+                                    {% if form.res_address_2.errors %}
+                                        <div class="text-danger small">{{ form.res_address_2.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Contact Information -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Контактна информация</h6>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.telno.id_for_label }}" class="form-label">{{ form.telno.label }}</label>
+                                    {{ form.telno }}
+                                    {% if form.telno.errors %}
+                                        <div class="text-danger small">{{ form.telno.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.faxno.id_for_label }}" class="form-label">{{ form.faxno.label }}</label>
+                                    {{ form.faxno }}
+                                    {% if form.faxno.errors %}
+                                        <div class="text-danger small">{{ form.faxno.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Business Information -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Бизнес информация</h6>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="{{ form.customer_mol.id_for_label }}" class="form-label">{{ form.customer_mol.label }}</label>
+                                    {{ form.customer_mol }}
+                                    {% if form.customer_mol.errors %}
+                                        <div class="text-danger small">{{ form.customer_mol.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="{{ form.customer_taxno.id_for_label }}" class="form-label">{{ form.customer_taxno.label }}</label>
+                                    {{ form.customer_taxno }}
+                                    {% if form.customer_taxno.errors %}
+                                        <div class="text-danger small">{{ form.customer_taxno.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="{{ form.customer_bulstat.id_for_label }}" class="form-label">{{ form.customer_bulstat.label }}</label>
+                                    {{ form.customer_bulstat }}
+                                    {% if form.customer_bulstat.errors %}
+                                        <div class="text-danger small">{{ form.customer_bulstat.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="{{ form.customer_doctype.id_for_label }}" class="form-label">{{ form.customer_doctype.label }}</label>
+                                    {{ form.customer_doctype }}
+                                    {% if form.customer_doctype.errors %}
+                                        <div class="text-danger small">{{ form.customer_doctype.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Receiver Information -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Информация за получател</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.receiver.id_for_label }}" class="form-label">{{ form.receiver.label }}</label>
+                                    {{ form.receiver }}
+                                    {% if form.receiver.errors %}
+                                        <div class="text-danger small">{{ form.receiver.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.receiver_details.id_for_label }}" class="form-label">{{ form.receiver_details.label }}</label>
+                                    {{ form.receiver_details }}
+                                    {% if form.receiver_details.errors %}
+                                        <div class="text-danger small">{{ form.receiver_details.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Status and Settings -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Статус и настройки</h6>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        {{ form.active }}
+                                        <label class="form-check-label" for="{{ form.active.id_for_label }}">
+                                            {{ form.active.label }}
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        {{ form.customer }}
+                                        <label class="form-check-label" for="{{ form.customer.id_for_label }}">
+                                            {{ form.customer.label }}
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        {{ form.supplier }}
+                                        <label class="form-check-label" for="{{ form.supplier.id_for_label }}">
+                                            {{ form.supplier.label }}
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        {{ form.include }}
+                                        <label class="form-check-label" for="{{ form.include.id_for_label }}">
+                                            {{ form.include.label }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Information -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Допълнителна информация</h6>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.contact.id_for_label }}" class="form-label">{{ form.contact.label }}</label>
+                                    {{ form.contact }}
+                                    {% if form.contact.errors %}
+                                        <div class="text-danger small">{{ form.contact.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.partida.id_for_label }}" class="form-label">{{ form.partida.label }}</label>
+                                    {{ form.partida }}
+                                    {% if form.partida.errors %}
+                                        <div class="text-danger small">{{ form.partida.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.bulstatletter.id_for_label }}" class="form-label">{{ form.bulstatletter.label }}</label>
+                                    {{ form.bulstatletter }}
+                                    {% if form.bulstatletter.errors %}
+                                        <div class="text-danger small">{{ form.bulstatletter.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mt-3">
+                                    <label for="{{ form.eidate.id_for_label }}" class="form-label">{{ form.eidate.label }}</label>
+                                    {{ form.eidate }}
+                                    {% if form.eidate.errors %}
+                                        <div class="text-danger small">{{ form.eidate.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Cars Section -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5 class="mb-3">
+                                        <i class="fas fa-car me-2"></i>Коли
+                                    </h5>
+                                    
+                                    {{ car_formset.management_form }}
+                                    
+                                    <div id="car-forms">
+                                        {% for car_form in car_formset %}
+                                            <div class="car-form border rounded p-3 mb-3">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label for="{{ car_form.brand_model.id_for_label }}" class="form-label">{{ car_form.brand_model.label }}</label>
+                                                        {{ car_form.brand_model }}
+                                                        {% if car_form.brand_model.errors %}
+                                                            <div class="text-danger small">{{ car_form.brand_model.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label for="{{ car_form.vin.id_for_label }}" class="form-label">{{ car_form.vin.label }}</label>
+                                                        {{ car_form.vin }}
+                                                        {% if car_form.vin.errors %}
+                                                            <div class="text-danger small">{{ car_form.vin.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label for="{{ car_form.plate_number.id_for_label }}" class="form-label">{{ car_form.plate_number.label }}</label>
+                                                        {{ car_form.plate_number }}
+                                                        {% if car_form.plate_number.errors %}
+                                                            <div class="text-danger small">{{ car_form.plate_number.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="row mt-2">
+                                                    <div class="col-md-3">
+                                                        <label for="{{ car_form.year.id_for_label }}" class="form-label">{{ car_form.year.label }}</label>
+                                                        {{ car_form.year }}
+                                                        {% if car_form.year.errors %}
+                                                            <div class="text-danger small">{{ car_form.year.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label for="{{ car_form.color.id_for_label }}" class="form-label">{{ car_form.color.label }}</label>
+                                                        {{ car_form.color }}
+                                                        {% if car_form.color.errors %}
+                                                            <div class="text-danger small">{{ car_form.color.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="{{ car_form.engine_number.id_for_label }}" class="form-label">{{ car_form.engine_number.label }}</label>
+                                                        {{ car_form.engine_number }}
+                                                        {% if car_form.engine_number.errors %}
+                                                            <div class="text-danger small">{{ car_form.engine_number.errors.0 }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-2 d-flex align-items-end">
+                                                        <div class="form-check">
+                                                            {{ car_form.is_active }}
+                                                            <label class="form-check-label" for="{{ car_form.is_active.id_for_label }}">
+                                                                {{ car_form.is_active.label }}
+                                                            </label>
+                                                        </div>
+                                                        {% if car_form.DELETE %}
+                                                            <div class="form-check ms-3">
+                                                                {{ car_form.DELETE }}
+                                                                <label class="form-check-label text-danger" for="{{ car_form.DELETE.id_for_label }}">
+                                                                    Изтрий
+                                                                </label>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                {% if car_form.id %}
+                                                    {{ car_form.id }}
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="add-car">
+                                        <i class="fas fa-plus me-1"></i>Добави кола
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="row">
+                                <div class="col-12 text-end">
+                                    <a href="{% url 'klienti' %}" class="btn btn-secondary me-2">
+                                        <i class="fas fa-times me-1"></i>Отказ
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>{{ action }}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addCarBtn = document.getElementById('add-car');
+            const carFormsContainer = document.getElementById('car-forms');
+            const totalFormsInput = document.getElementById('id_cars-TOTAL_FORMS');
+            let formCount = parseInt(totalFormsInput.value);
+
+            addCarBtn.addEventListener('click', function() {
+                const newForm = document.createElement('div');
+                newForm.className = 'car-form border rounded p-3 mb-3';
+                newForm.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Марка и модел</label>
+                            <input type="text" name="cars-${formCount}-brand_model" class="form-control" placeholder="Например: FIAT DUCATO (250) 120 Multijet 2,3 D">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">VIN/Шаси номер</label>
+                            <input type="text" name="cars-${formCount}-vin" class="form-control" placeholder="VIN/Шаси номер">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Регистрационен номер</label>
+                            <input type="text" name="cars-${formCount}-plate_number" class="form-control" placeholder="Например: CA1234AB">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-3">
+                            <label class="form-label">Година на производство</label>
+                            <input type="number" name="cars-${formCount}-year" class="form-control" min="1900" max="2030">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Цвят</label>
+                            <input type="text" name="cars-${formCount}-color" class="form-control" placeholder="Например: Бял, Черен, Син">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Номер на двигател</label>
+                            <input type="text" name="cars-${formCount}-engine_number" class="form-control" placeholder="Номер на двигател">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input type="checkbox" name="cars-${formCount}-is_active" class="form-check-input" checked>
+                                <label class="form-check-label">Активна</label>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm ms-2 remove-car">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                carFormsContainer.appendChild(newForm);
+                totalFormsInput.value = formCount + 1;
+                formCount++;
+            });
+
+            // Remove car form
+            carFormsContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-car') || e.target.parentElement.classList.contains('remove-car')) {
+                    e.target.closest('.car-form').remove();
+                    totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

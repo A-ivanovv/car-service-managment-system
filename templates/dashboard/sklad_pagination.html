@@ -1,0 +1,33 @@
+{% if page_obj.has_other_pages %}
+    {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.unit_filter %}&unit_filter={{ request.GET.unit_filter }}{% endif %}">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.unit_filter %}&unit_filter={{ request.GET.unit_filter }}{% endif %}">
+                <i class="fas fa-angle-left"></i>
+            </a>
+        </li>
+    {% endif %}
+
+    <li class="page-item active">
+        <span class="page-link">
+            Страница {{ page_obj.number }} от {{ page_obj.paginator.num_pages }}
+        </span>
+    </li>
+
+    {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.unit_filter %}&unit_filter={{ request.GET.unit_filter }}{% endif %}">
+                <i class="fas fa-angle-right"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.unit_filter %}&unit_filter={{ request.GET.unit_filter }}{% endif %}">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+        </li>
+    {% endif %}
+{% endif %}
