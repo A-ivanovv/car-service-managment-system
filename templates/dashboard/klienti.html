@@ -124,7 +124,7 @@
                             <tbody>
                                 {% for customer in customers %}
                                 <tr>
-                                    <td><strong>{{ customer.number }}</strong></td>
+                                    <td><strong>{{ customer.id }}</strong></td>
                                     <td>
                                         <a href="{% url 'customer_detail' customer.pk %}" class="text-decoration-none">
                                             {{ customer.customer_name }}

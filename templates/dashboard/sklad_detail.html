@@ -31,6 +31,12 @@
                     {{ item.article_number }} - {{ item.name }}
                 </h1>
                 <div class="btn-group">
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="fas fa-file-import me-2"></i>Импорт
+                    </button>
+                    <a href="{% url 'sklad_import_stats' %}" class="btn btn-info">
+                        <i class="fas fa-chart-bar me-2"></i>Статистики
+                    </a>
                     <a href="{% url 'sklad_edit' item.pk %}" class="btn btn-warning">
                         <i class="fas fa-edit me-2"></i>Редактирай
                     </a>
@@ -165,6 +171,178 @@
     </div>
 </div>
 
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">
+                        <i class="fas fa-file-import me-2"></i>Импорт на артикули
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="importForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="provider" class="form-label fw-bold">
+                                Доставчик <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="provider" name="provider" required>
+                                <option value="">Изберете доставчик...</option>
+                                <option value="starts94">Старс 94 (PDF)</option>
+                                <option value="peugeot">Пежо (PDF)</option>
+                                <option value="nalichnosti">НАЛИЧНОСТИ (Excel)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="file" class="form-label fw-bold">
+                                Файл <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" class="form-control" id="file" name="file" required>
+                            <div class="form-text">
+                                <small id="fileHelp" class="text-muted">
+                                    Поддържани формати: PDF, Excel (.xlsx)
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="updateExisting" name="update_existing" checked>
+                                <label class="form-check-label" for="updateExisting">
+                                    Обнови съществуващи артикули
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    Ако е отметнато, ще се обновят количествата на съществуващите артикули. 
+                                    Ако не е отметнато, ще се създадат нови записи.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div id="importProgress" class="d-none">
+                            <div class="progress mb-3">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="text-center">
+                                <small class="text-muted">Обработване на файла...</small>
+                            </div>
+                        </div>
+
+                        <div id="importResults" class="d-none">
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-check-circle me-2"></i>Импортът завърши успешно!</h6>
+                                <div id="importStats"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+                        <button type="submit" class="btn btn-success" id="importBtn">
+                            <i class="fas fa-upload me-2"></i>Импорт
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const importForm = document.getElementById('importForm');
+            const providerSelect = document.getElementById('provider');
+            const fileInput = document.getElementById('file');
+            const importProgress = document.getElementById('importProgress');
+            const importResults = document.getElementById('importResults');
+            const importBtn = document.getElementById('importBtn');
+            const fileHelp = document.getElementById('fileHelp');
+
+            // Update file help text based on provider
+            providerSelect.addEventListener('change', function() {
+                const provider = this.value;
+                if (provider === 'starts94' || provider === 'peugeot') {
+                    fileHelp.textContent = 'Поддържан формат: PDF';
+                    fileInput.accept = '.pdf';
+                } else if (provider === 'nalichnosti') {
+                    fileHelp.textContent = 'Поддържан формат: Excel (.xlsx)';
+                    fileInput.accept = '.xlsx';
+                } else {
+                    fileHelp.textContent = 'Поддържани формати: PDF, Excel (.xlsx)';
+                    fileInput.accept = '';
+                }
+            });
+
+            // Handle form submission
+            importForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const provider = formData.get('provider');
+                
+                if (!provider) {
+                    alert('Моля, изберете доставчик!');
+                    return;
+                }
+
+                if (!fileInput.files[0]) {
+                    alert('Моля, изберете файл!');
+                    return;
+                }
+
+                // Show progress
+                importProgress.classList.remove('d-none');
+                importResults.classList.add('d-none');
+                importBtn.disabled = true;
+                importBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Импорт...';
+
+                // Submit form
+                fetch('{% url "sklad_import" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    importProgress.classList.add('d-none');
+                    importResults.classList.remove('d-none');
+                    
+                    if (data.success) {
+                        document.getElementById('importStats').innerHTML = `
+                            <p class="mb-1"><strong>Създадени:</strong> ${data.created || 0}</p>
+                            <p class="mb-1"><strong>Обновени:</strong> ${data.updated || 0}</p>
+                            <p class="mb-1"><strong>Грешки:</strong> ${data.errors || 0}</p>
+                            <p class="mb-0"><strong>Общо обработени:</strong> ${data.total || 0}</p>
+                        `;
+                        
+                        // Reset form
+                        importForm.reset();
+                        fileHelp.textContent = 'Поддържани формати: PDF, Excel (.xlsx)';
+                        fileInput.accept = '';
+                    } else {
+                        document.getElementById('importStats').innerHTML = `
+                            <p class="mb-0 text-danger"><strong>Грешка:</strong> ${data.error || 'Неизвестна грешка'}</p>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    importProgress.classList.add('d-none');
+                    importResults.classList.remove('d-none');
+                    document.getElementById('importStats').innerHTML = `
+                        <p class="mb-0 text-danger"><strong>Грешка:</strong> ${error.message}</p>
+                    `;
+                })
+                .finally(() => {
+                    importBtn.disabled = false;
+                    importBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Импорт';
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -35,7 +35,7 @@ class Command(BaseCommand):
             {
                 'article_number': '000300100301',
                 'name': 'Total Quartz 7000 10W40 5L',
-                'unit': 'бр',
+                'unit': 'л',
                 'quantity': 3.00,
                 'purchase_price': 49.56,
                 'is_active': True
@@ -43,7 +43,7 @@ class Command(BaseCommand):
             {
                 'article_number': '00030010030102',
                 'name': 'Total Quatrz 7000 10W40 4L',
-                'unit': 'бр',
+                'unit': 'л',
                 'quantity': 5.00,
                 'purchase_price': 24.92,
                 'is_active': True
@@ -51,7 +51,7 @@ class Command(BaseCommand):
             {
                 'article_number': '000300100303',
                 'name': 'Total 7000 Energy 10W40 1л.',
-                'unit': 'бр',
+                'unit': 'л',
                 'quantity': 2.00,
                 'purchase_price': 7.68,
                 'is_active': True
@@ -59,7 +59,7 @@ class Command(BaseCommand):
             {
                 'article_number': '00030010030301',
                 'name': 'Total 7000 Energy 10W40 4л.',
-                'unit': 'бр',
+                'unit': 'л',
                 'quantity': 1.00,
                 'purchase_price': 27.92,
                 'is_active': True
@@ -164,7 +164,7 @@ class Command(BaseCommand):
             {
                 'article_number': '0009902907',
                 'name': 'части по дизелова гпр.с-ма',
-                'unit': 'бр',
+                'unit': 'кг',
                 'quantity': 5.00,
                 'purchase_price': 5.24,
                 'is_active': True
@@ -449,10 +449,10 @@ class Command(BaseCommand):
                 'purchase_price': 328.95,
                 'is_active': True
             },
-            {
+            {   
                 'article_number': '1622750380',
                 'name': 'щипка',
-                'unit': 'бр',
+                'unit': 'м',
                 'quantity': 30.00,
                 'purchase_price': 1.06,
                 'is_active': True

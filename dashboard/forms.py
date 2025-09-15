@@ -9,12 +9,13 @@ class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = [
-            'number', 'customer_name', 'customer_address_1', 'customer_address_2',
+            'customer_name', 'customer_address_1', 'customer_address_2',
             'customer_mol', 'customer_taxno', 'customer_doctype', 'receiver',
             'receiver_details', 'customer_bulstat', 'telno', 'faxno', 'email',
             'res_address_1', 'res_address_2', 'eidate', 'include', 'active',
             'customer', 'supplier', 'contact', 'partida', 'bulstatletter'
         ]
+    
         widgets = {
             'customer_name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -103,6 +104,13 @@ class CustomerForm(forms.ModelForm):
                 'class': 'form-check-input'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['customer_name'].required = True
+        self.fields['customer_name'].widget.attrs['required'] = True
+    
         labels = {
             'number': 'Номер',
             'customer_name': 'Име на клиент',
@@ -223,6 +231,12 @@ class CarForm(forms.ModelForm):
                 'class': 'form-check-input'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['brand_model'].required = True
+        self.fields['brand_model'].widget.attrs['required'] = True
 
 
 # Inline formset for cars
@@ -278,6 +292,14 @@ class EmployeeForm(forms.ModelForm):
                 'placeholder': 'Допълнителни бележки за служителя'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['first_name'].required = True
+        self.fields['first_name'].widget.attrs['required'] = True
+        self.fields['last_name'].required = True
+        self.fields['last_name'].widget.attrs['required'] = True
 
 
 class EmployeeSearchForm(forms.Form):
@@ -336,6 +358,16 @@ class DaysOffForm(forms.ModelForm):
             }),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['employee'].required = True
+        self.fields['employee'].widget.attrs['required'] = True
+        self.fields['start_date'].required = True
+        self.fields['start_date'].widget.attrs['required'] = True
+        self.fields['end_date'].required = True
+        self.fields['end_date'].widget.attrs['required'] = True
+    
     def clean(self):
         cleaned_data = super().clean()
         start_date = cleaned_data.get('start_date')
@@ -392,6 +424,20 @@ class SkladForm(forms.ModelForm):
             'is_active': 'Активен',
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['article_number'].required = True
+        self.fields['article_number'].widget.attrs['required'] = True
+        self.fields['name'].required = True
+        self.fields['name'].widget.attrs['required'] = True
+        self.fields['unit'].required = True
+        self.fields['unit'].widget.attrs['required'] = True
+        self.fields['quantity'].required = True
+        self.fields['quantity'].widget.attrs['required'] = True
+        self.fields['purchase_price'].required = True
+        self.fields['purchase_price'].widget.attrs['required'] = True
+    
     def clean_article_number(self):
         """Validate and format article number"""
         article_number = self.cleaned_data.get('article_number')
@@ -444,18 +490,18 @@ class SkladSearchForm(forms.Form):
     )
     
     unit_filter = forms.ChoiceField(
-        choices=[
-            ('', 'Всички мерни единици'),
-            ('бр', 'Бройки'),
-            ('кг', 'Килограми'),
-            ('л', 'Литри'),
-            ('м', 'Метри'),
-            ('м²', 'Квадратни метри'),
-            ('м³', 'Кубични метри'),
-        ],
+        choices=[],  # Will be populated dynamically
         required=False,
         widget=forms.Select(attrs={
             'class': 'form-select'
         }),
         label='Мерна единица'
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Populate unit choices from database
+        from .models import Sklad
+        units = Sklad.objects.values_list('unit', flat=True).distinct().order_by('unit')
+        unit_choices = [('', 'Всички мерни единици')] + [(unit, unit) for unit in units if unit]
+        self.fields['unit_filter'].choices = unit_choices

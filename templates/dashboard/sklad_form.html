@@ -1,3 +1,4 @@
+{% load static %}
 {% load sklad_filters %}
 <!DOCTYPE html>
 <html lang="bg">
@@ -72,8 +73,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3 form-group">
-                                    {{ form.article_number.label_tag }}
-                                    {{ form.article_number|add_class:"form-control"|add_attr:"data-autocomplete:true"|add_attr:"data-autocomplete-field:article_number" }}
+                                    <label for="{{ form.article_number.id_for_label }}" class="form-label">{{ form.article_number.label }} <span class="text-danger">*</span></label>
+                                    {{ form.article_number|add_class_and_attrs:"class:form-control|data-autocomplete:true|data-autocomplete-field:article_number" }}
                                     {% if form.article_number.errors %}
                                         <div class="text-danger">
                                             {% for error in form.article_number.errors %}
@@ -88,7 +89,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.unit.label_tag }}
+                                    <label for="{{ form.unit.id_for_label }}" class="form-label">{{ form.unit.label }} <span class="text-danger">*</span></label>
                                     {{ form.unit }}
                                     {% if form.unit.errors %}
                                         <div class="text-danger">
@@ -102,8 +103,8 @@
                         </div>
 
                         <div class="mb-3 form-group">
-                            {{ form.name.label_tag }}
-                            {{ form.name|add_class:"form-control"|add_attr:"data-autocomplete:true"|add_attr:"data-autocomplete-field:name" }}
+                            <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }} <span class="text-danger">*</span></label>
+                            {{ form.name|add_class_and_attrs:"class:form-control|data-autocomplete:true|data-autocomplete-field:name" }}
                             {% if form.name.errors %}
                                 <div class="text-danger">
                                     {% for error in form.name.errors %}
@@ -116,7 +117,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.quantity.label_tag }}
+                                    <label for="{{ form.quantity.id_for_label }}" class="form-label">{{ form.quantity.label }} <span class="text-danger">*</span></label>
                                     {{ form.quantity }}
                                     {% if form.quantity.errors %}
                                         <div class="text-danger">
@@ -129,7 +130,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.purchase_price.label_tag }}
+                                    <label for="{{ form.purchase_price.id_for_label }}" class="form-label">{{ form.purchase_price.label }} <span class="text-danger">*</span></label>
                                     {{ form.purchase_price }}
                                     {% if form.purchase_price.errors %}
                                         <div class="text-danger">

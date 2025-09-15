@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from datetime import datetime, timedelta
 import json
-from .models import Customer, Car, Employee, DaysOff, Event, Sklad
+from .models import Customer, Car, Employee, DaysOff, Event, Sklad, ImportLog
 from .forms import CustomerForm, CustomerSearchForm, CarFormSet, EmployeeForm, EmployeeSearchForm, DaysOffForm, SkladForm, SkladSearchForm
 
 def dashboard(request):
@@ -799,3 +799,786 @@ def sklad_autocomplete(request):
         })
     
     return JsonResponse({'suggestions': suggestions})
+
+
+def sklad_import(request):
+    """Handle file imports for different providers"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'})
+    
+    try:
+        provider = request.POST.get('provider')
+        file = request.FILES.get('file')
+        update_existing = request.POST.get('update_existing') == 'on'
+        
+        if not provider or not file:
+            return JsonResponse({'success': False, 'error': 'Missing provider or file'})
+        
+        # Validate file type based on provider
+        if provider in ['starts94', 'peugeot']:
+            if not file.name.lower().endswith('.pdf'):
+                return JsonResponse({'success': False, 'error': 'Invalid file type. Expected PDF for this provider.'})
+        elif provider == 'nalichnosti':
+            if not file.name.lower().endswith('.xlsx'):
+                return JsonResponse({'success': False, 'error': 'Invalid file type. Expected Excel (.xlsx) for this provider.'})
+        
+        # Additional content validation
+        try:
+            if provider == 'nalichnosti':
+                # Validate Excel content
+                import openpyxl
+                workbook = openpyxl.load_workbook(file)
+                if not workbook.active or workbook.active.max_row < 8:
+                    return JsonResponse({'success': False, 'error': 'Invalid Excel file. File appears to be empty or corrupted.'})
+            elif provider in ['starts94', 'peugeot']:
+                # Validate PDF content
+                import pdfplumber
+                with pdfplumber.open(file) as pdf:
+                    if len(pdf.pages) == 0:
+                        return JsonResponse({'success': False, 'error': 'Invalid PDF file. File appears to be empty or corrupted.'})
+                    # Extract first page text to check if it's readable
+                    first_page_text = pdf.pages[0].extract_text()
+                    if not first_page_text or len(first_page_text.strip()) < 50:
+                        return JsonResponse({'success': False, 'error': 'Invalid PDF file. File appears to be unreadable or corrupted.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'File validation failed: {str(e)}'})
+        
+        # Process based on provider
+        if provider == 'nalichnosti':
+            result = import_nalichnosti_excel(file, update_existing)
+        elif provider == 'starts94':
+            result = import_starts94_pdf(file, update_existing)
+        elif provider == 'peugeot':
+            result = import_peugeot_pdf(file, update_existing)
+        else:
+            return JsonResponse({'success': False, 'error': 'Unknown provider'})
+        
+        # Create ImportLog entry
+        try:
+            ImportLog.objects.create(
+                provider=provider,
+                invoice_date=result.get('invoice_date'),
+                file_name=file.name,
+                items_created=result.get('created', 0),
+                items_updated=result.get('updated', 0),
+                errors_count=result.get('errors', 0),
+                skipped_count=result.get('skipped', 0),
+                total_processed=result.get('total', 0),
+                is_successful=True,
+                affected_items=result.get('affected_items', {'created': [], 'updated': []})
+            )
+        except Exception as e:
+            # Log the error but don't fail the import
+            print(f"Error creating ImportLog: {e}")
+        
+        return JsonResponse({
+            'success': True,
+            'created': result.get('created', 0),
+            'updated': result.get('updated', 0),
+            'errors': result.get('errors', 0),
+            'total': result.get('total', 0)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+def import_nalichnosti_excel(file, update_existing=False):
+    """Import from НАЛИЧНОСТИ Excel file"""
+    import openpyxl
+    from decimal import Decimal
+    from datetime import datetime
+    import re
+    
+    created_count = 0
+    updated_count = 0
+    errors_count = 0
+    skipped_count = 0
+    affected_items = {
+        'created': [],
+        'updated': []
+    }
+    invoice_date = None
+    
+    try:
+        workbook = openpyxl.load_workbook(file)
+        sheet = workbook.active
+        
+        # Validate that this looks like a НАЛИЧНОСТИ Excel file
+        # Check if it has the expected structure (header row around row 7-8)
+        header_found = False
+        for row_idx in range(1, 10):  # Check first 10 rows for headers
+            row_data = [str(cell.value).lower() if cell.value else '' for cell in sheet[row_idx]]
+            if any(keyword in ' '.join(row_data) for keyword in ['артикул', 'наименование', 'наличност', 'цена']):
+                header_found = True
+                break
+        
+        if not header_found:
+            raise Exception("This doesn't appear to be a НАЛИЧНОСТИ Excel file. Please verify the provider selection.")
+        
+        # Extract invoice date from the first few rows
+        # Look for various date patterns in НАЛИЧНОСТИ files
+        for row_idx in range(1, 15):  # Check more rows
+            row_data = [str(cell.value) if cell.value else '' for cell in sheet[row_idx]]
+            row_text = ' '.join(row_data)
+            
+            
+            # Try multiple date patterns
+            date_patterns = [
+                # Pattern 1: "Към дата 2025-09-04 00:00:00" (ISO format)
+                r'Към дата\s+(\d{4}-\d{1,2}-\d{1,2})',
+                # Pattern 2: "Към дата 4.9.2025 'г.'" or "Към дата 04/09/2025"
+                r'Към дата\s+(\d{1,2}[./]\d{1,2}[./]\d{4})',
+                # Pattern 3: "Дата: 04/09/2025" or "Дата: 4.9.2025"
+                r'Дата:\s*(\d{1,2}[./]\d{1,2}[./]\d{4})',
+                # Pattern 4: Just look for date patterns in the text
+                r'(\d{1,2}[./]\d{1,2}[./]\d{4})',
+            ]
+            
+            for pattern in date_patterns:
+                date_match = re.search(pattern, row_text)
+                if date_match:
+                    try:
+                        date_str = date_match.group(1)
+                        # Try different date formats
+                        for date_format in ['%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y', '%d.%m.%y', '%d/%m/%y']:
+                            try:
+                                invoice_date = datetime.strptime(date_str, date_format).date()
+                                # If year is 2 digits, assume 20xx
+                                if len(date_str.split('.')[-1]) == 2 or len(date_str.split('/')[-1]) == 2:
+                                    year = invoice_date.year
+                                    if year < 2000:
+                                        invoice_date = invoice_date.replace(year=year + 2000)
+                                break
+                            except ValueError:
+                                continue
+                        if invoice_date:
+                            break
+                    except (ValueError, AttributeError):
+                        continue
+            if invoice_date:
+                break
+        
+        # If no date found, use current date
+        if not invoice_date:
+            invoice_date = datetime.now().date()
+        
+        # Start from row 8 (as per existing logic)
+        for row_idx in range(8, sheet.max_row + 1):
+            row_data = [cell.value for cell in sheet[row_idx]]
+            
+            # Skip empty rows
+            if not any(row_data):
+                skipped_count += 1
+                continue
+                
+            # Assuming columns: A=Article Number, B=Name, F=Unit, G=Quantity, H=Purchase Price
+            article_number = str(row_data[0]).strip() if row_data[0] else None
+            name = str(row_data[1]).strip() if row_data[1] else None
+            unit = str(row_data[5]).strip() if row_data[5] else None
+            quantity_raw = row_data[6]
+            purchase_price_raw = row_data[7]
+            
+            # Skip rows without essential data
+            if not article_number or not name or article_number == 'None' or name == 'None':
+                skipped_count += 1
+                continue
+                
+            # Skip header rows (check if article_number looks like a header)
+            if any(header_word in article_number.lower() for header_word in ['артикул', 'наименование', 'номер', 'код']):
+                skipped_count += 1
+                continue
+            
+            try:
+                quantity = Decimal(str(quantity_raw).replace(',', '.')) if quantity_raw else Decimal('0.00')
+                purchase_price = Decimal(str(purchase_price_raw).replace(',', '.')) if purchase_price_raw else Decimal('0.00')
+                
+                # Round to 2 decimal places to match database precision
+                quantity = quantity.quantize(Decimal('0.01'))
+                purchase_price = purchase_price.quantize(Decimal('0.01'))
+            except (ValueError, TypeError):
+                errors_count += 1
+                continue
+            
+            
+            try:
+                if update_existing:
+                    sklad_item, created = Sklad.objects.get_or_create(
+                        article_number=article_number,
+                        defaults={
+                            'name': name,
+                            'unit': unit,
+                            'quantity': quantity,
+                            'purchase_price': purchase_price,
+                            'is_active': True
+                        }
+                    )
+                    if created:
+                        created_count += 1
+                        affected_items['created'].append({
+                            'article_number': article_number,
+                            'name': name,
+                            'unit': unit,
+                            'quantity': float(quantity),
+                            'purchase_price': float(purchase_price)
+                        })
+                    else:
+                        # Check if any values have actually changed
+                        has_changes = False
+                        changes_log = []
+                        old_values = {
+                            'name': sklad_item.name,
+                            'unit': sklad_item.unit,
+                            'quantity': float(sklad_item.quantity),
+                            'purchase_price': float(sklad_item.purchase_price),
+                            'is_active': sklad_item.is_active
+                        }
+                        
+                        if sklad_item.name != name:
+                            changes_log.append(f"name: '{sklad_item.name}' -> '{name}'")
+                            sklad_item.name = name
+                            has_changes = True
+                        if sklad_item.unit != unit:
+                            changes_log.append(f"unit: '{sklad_item.unit}' -> '{unit}'")
+                            sklad_item.unit = unit
+                            has_changes = True
+                        # Add imported quantity to existing quantity instead of replacing
+                        if quantity > 0:  # Only add if we have a positive quantity to add
+                            old_quantity = sklad_item.quantity
+                            new_quantity = sklad_item.quantity + quantity
+                            changes_log.append(f"quantity: {old_quantity} -> {new_quantity} (added {quantity})")
+                            sklad_item.quantity = new_quantity
+                            has_changes = True
+                        if sklad_item.purchase_price != purchase_price:
+                            changes_log.append(f"purchase_price: {sklad_item.purchase_price} -> {purchase_price}")
+                            sklad_item.purchase_price = purchase_price
+                            has_changes = True
+                        if not sklad_item.is_active:
+                            changes_log.append(f"is_active: {sklad_item.is_active} -> True")
+                            sklad_item.is_active = True
+                            has_changes = True
+                        
+                        if has_changes:
+                            sklad_item.save()
+                            updated_count += 1
+                            affected_items['updated'].append({
+                                'article_number': article_number,
+                                'name': name,
+                                'unit': unit,
+                                'quantity': float(sklad_item.quantity),  # Use final quantity after addition
+                                'purchase_price': float(purchase_price),
+                                'old_values': old_values,
+                                'changes': changes_log
+                            })
+                        else:
+                            # No changes needed, count as skipped
+                            skipped_count += 1
+                else:
+                    sklad_item, created = Sklad.objects.get_or_create(
+                        article_number=article_number,
+                        defaults={
+                            'name': name,
+                            'unit': unit,
+                            'quantity': quantity,
+                            'purchase_price': purchase_price,
+                            'is_active': True
+                        }
+                    )
+                    if created:
+                        created_count += 1
+                    else:
+                        errors_count += 1  # Item already exists and we're not updating
+                        
+            except Exception as e:
+                errors_count += 1
+                continue
+                
+    except Exception as e:
+        raise Exception(f"Error processing Excel file: {str(e)}")
+    
+    return {
+        'created': created_count,
+        'updated': updated_count,
+        'errors': errors_count,
+        'skipped': skipped_count,
+        'total': created_count + updated_count + errors_count + skipped_count,
+        'invoice_date': invoice_date,
+        'affected_items': affected_items
+    }
+
+
+def import_starts94_pdf(file, update_existing=False):
+    """Import from Старс 94 PDF file""" 
+    import pdfplumber
+    import re
+    from decimal import Decimal
+    from datetime import datetime
+    
+    created_count = 0
+    updated_count = 0
+    errors_count = 0
+    skipped_count = 0
+    invoice_date = None
+    affected_items = {
+        'created': [],
+        'updated': []
+    }
+    
+    try:
+        with pdfplumber.open(file) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text() or ""
+        
+        # Validate that this looks like a Старс 94 PDF
+        if not any(keyword in text.lower() for keyword in ['старс', 'starts', '94']):
+            raise Exception("This doesn't appear to be a Старс 94 PDF file. Please verify the provider selection.")
+        
+        # Extract invoice date
+        # Look for pattern like "Дата: 09.09.2025"
+        date_match = re.search(r'Дата:\s+(\d+\.\d+\.\d+)', text)
+        if date_match:
+            try:
+                date_str = date_match.group(1)
+                # Parse date in format dd.mm.yyyy
+                invoice_date = datetime.strptime(date_str, '%d.%m.%Y').date()
+            except ValueError:
+                pass
+        
+        # If no date found, use current date
+        if not invoice_date:
+            invoice_date = datetime.now().date()
+        
+        # Parse PDF text to extract items
+        # Format: № Код Наименование Мярка К-во Цена Т.О. % Общо(с ДДС)
+        # Example: 1 OE 9674994180 гарнитура инжекционна помпа БР 1.00 4.80 30 3.36
+        lines = text.split('\n')
+        
+        for line in lines:
+            # Look for patterns that match article data
+            # Format: № Код Наименование Мярка К-во Цена Т.О. % Общо(с ДДС)
+            # Updated regex to capture TO% and final price
+            match = re.search(r'\d+\s+([A-Z]+\s+[A-Z0-9]+)\s+(.+?)\s+(\w+)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)', line)
+            if match:
+                article_number = match.group(1).strip()  # Код
+                name = match.group(2).strip()           # Наименование
+                unit = match.group(3).strip()           # Мярка
+                quantity = Decimal(match.group(4)).quantize(Decimal('0.01'))      # К-во
+                base_price = Decimal(match.group(5)).quantize(Decimal('0.01'))    # Цена
+                to_percentage = Decimal(match.group(6)).quantize(Decimal('0.01'))  # Т.О. %
+                final_price = Decimal(match.group(7)).quantize(Decimal('0.01'))   # Общо(с ДДС)
+                
+                # Calculate the actual purchase price using TO% discount
+                # Formula: total_price = (base_price * quantity) * (1 - to_percentage/100)
+                # Then: unit_price = total_price / quantity
+                total_base_price = base_price * quantity
+                total_discounted_price = (total_base_price * (1 - to_percentage / 100)).quantize(Decimal('0.01'))
+                purchase_price = (total_discounted_price / quantity).quantize(Decimal('0.01'))
+                
+                try:
+                    if update_existing:
+                        sklad_item, created = Sklad.objects.get_or_create(
+                            article_number=article_number,
+                            defaults={
+                                'name': name,
+                                'unit': unit,  # Use actual unit from PDF
+                                'quantity': quantity,
+                                'purchase_price': purchase_price,
+                                'is_active': True
+                            }
+                        )
+                        if created:
+                            created_count += 1
+                            affected_items['created'].append({
+                                'article_number': article_number,
+                                'name': name,
+                                'unit': unit,
+                                'quantity': float(quantity),
+                                'purchase_price': float(purchase_price)
+                            })
+                        else:
+                            # Check if any values have actually changed
+                            has_changes = False
+                            changes_log = []
+                            old_values = {
+                                'name': sklad_item.name,
+                                'unit': sklad_item.unit,
+                                'quantity': float(sklad_item.quantity),
+                                'purchase_price': float(sklad_item.purchase_price),
+                                'is_active': sklad_item.is_active
+                            }
+                            
+                            if sklad_item.name != name:
+                                changes_log.append(f"name: '{sklad_item.name}' -> '{name}'")
+                                sklad_item.name = name
+                                has_changes = True
+                            if sklad_item.unit != unit:
+                                changes_log.append(f"unit: '{sklad_item.unit}' -> '{unit}'")
+                                sklad_item.unit = unit
+                                has_changes = True
+                            # Add imported quantity to existing quantity instead of replacing
+                            if quantity > 0:  # Only add if we have a positive quantity to add
+                                old_quantity = sklad_item.quantity
+                                new_quantity = sklad_item.quantity + quantity
+                                changes_log.append(f"quantity: {old_quantity} -> {new_quantity} (added {quantity})")
+                                sklad_item.quantity = new_quantity
+                                has_changes = True
+                            if sklad_item.purchase_price != purchase_price:
+                                changes_log.append(f"purchase_price: {sklad_item.purchase_price} -> {purchase_price}")
+                                sklad_item.purchase_price = purchase_price
+                                has_changes = True
+                            if not sklad_item.is_active:
+                                changes_log.append(f"is_active: {sklad_item.is_active} -> True")
+                                sklad_item.is_active = True
+                                has_changes = True
+                            
+                            if has_changes:
+                                sklad_item.save()
+                                updated_count += 1
+                                affected_items['updated'].append({
+                                    'article_number': article_number,
+                                    'name': name,
+                                    'unit': unit,
+                                    'quantity': float(sklad_item.quantity),  # Use final quantity after addition
+                                    'purchase_price': float(purchase_price),
+                                    'old_values': old_values,
+                                    'changes': changes_log
+                                })
+                            else:
+                                # No changes needed, count as skipped
+                                skipped_count += 1
+                    else:
+                        sklad_item, created = Sklad.objects.get_or_create(
+                            article_number=article_number,
+                            defaults={
+                                'name': name,
+                                'unit': unit,  # Use actual unit from PDF
+                                'quantity': quantity,
+                                'purchase_price': purchase_price,
+                                'is_active': True
+                            }
+                        )
+                        if created:
+                            created_count += 1
+                        else:
+                            errors_count += 1
+                            
+                except Exception as e:
+                    errors_count += 1
+                    continue
+                    
+    except Exception as e:
+        raise Exception(f"Error processing Старс 94 PDF: {str(e)}")
+    
+    return {
+        'created': created_count,
+        'updated': updated_count,
+        'errors': errors_count,
+        'skipped': skipped_count,
+        'total': created_count + updated_count + errors_count + skipped_count,
+        'invoice_date': invoice_date,
+        'affected_items': affected_items
+    }
+
+
+def import_peugeot_pdf(file, update_existing=False):
+    """Import from Пежо PDF file"""
+    import pdfplumber
+    import re
+    from decimal import Decimal
+    from datetime import datetime
+    
+    created_count = 0
+    updated_count = 0
+    errors_count = 0
+    skipped_count = 0
+    affected_items = {
+        'created': [],
+        'updated': []
+    }
+    invoice_date = None
+    
+    try:
+        with pdfplumber.open(file) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text() or ""
+        
+        # Validate that this looks like a Пежо PDF
+        if not any(keyword in text.lower() for keyword in ['пежо', 'peugeot', 'peugeot']):
+            raise Exception("This doesn't appear to be a Пежо PDF file. Please verify the provider selection.")
+        
+        # Extract invoice date
+        # Look for pattern like "Дата на данъчно събитие:21.08.25"
+        date_match = re.search(r'Дата на данъчно събитие:\s*(\d+\.\d+\.\d+)', text)
+        if date_match:
+            try:
+                date_str = date_match.group(1)
+                # Parse date in format dd.mm.yy (assuming 20xx for years < 50)
+                if len(date_str.split('.')[-1]) == 2:
+                    year = int(date_str.split('.')[-1])
+                    if year < 50:
+                        year += 2000
+                    else:
+                        year += 1900
+                    date_str = date_str[:-2] + str(year)
+                invoice_date = datetime.strptime(date_str, '%d.%m.%Y').date()
+            except ValueError:
+                pass
+        
+        # If no date found, use current date
+        if not invoice_date:
+            invoice_date = datetime.now().date()
+        
+        # Parse PDF text to extract items
+        # Format: Катал.No Наименование Кол. МЕ Ед.цена TO% Общо
+        # Example: 1680233580 МАСЛЕН ФИЛТЪР ERP 4.00 Брой 13.51 40.0 32.44
+        lines = text.split('\n')
+        
+        for line in lines:
+            # Look for patterns that match article data
+            # Format: Катал.No Наименование Кол. МЕ Ед.цена TO% Общо
+            match = re.search(r'(\w+)\s+(.+?)\s+(\d+\.?\d*)\s+(\w+)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)', line)
+            if match:
+                article_number = match.group(1).strip()
+                name = match.group(2).strip()
+                quantity = Decimal(match.group(3)).quantize(Decimal('0.01'))  # Кол.
+                unit = match.group(4).strip()      # МЕ
+                base_price = Decimal(match.group(5)).quantize(Decimal('0.01'))  # Ед.цена
+                to_percentage = Decimal(match.group(6)).quantize(Decimal('0.01'))  # TO%
+                final_price = Decimal(match.group(7)).quantize(Decimal('0.01'))  # Общо
+                
+                # Calculate the actual purchase price using TO% discount
+                # Formula: total_price = (base_price * quantity) * (1 - to_percentage/100)
+                # Then: unit_price = total_price / quantity
+                total_base_price = base_price * quantity
+                total_discounted_price = (total_base_price * (1 - to_percentage / 100)).quantize(Decimal('0.01'))
+                purchase_price = (total_discounted_price / quantity).quantize(Decimal('0.01'))
+                
+                try:
+                    if update_existing:
+                        sklad_item, created = Sklad.objects.get_or_create(
+                            article_number=article_number,
+                            defaults={
+                                'name': name,
+                                'unit': unit,  # Use actual unit from PDF
+                                'quantity': quantity,
+                                'purchase_price': purchase_price,
+                                'is_active': True
+                            }
+                        )
+                        if created:
+                            created_count += 1
+                            affected_items['created'].append({
+                                'article_number': article_number,
+                                'name': name,
+                                'unit': unit,
+                                'quantity': float(quantity),
+                                'purchase_price': float(purchase_price)
+                            })
+                        else:
+                            # Check if any values have actually changed
+                            has_changes = False
+                            changes_log = []
+                            old_values = {
+                                'name': sklad_item.name,
+                                'unit': sklad_item.unit,
+                                'quantity': float(sklad_item.quantity),
+                                'purchase_price': float(sklad_item.purchase_price),
+                                'is_active': sklad_item.is_active
+                            }
+                            
+                            if sklad_item.name != name:
+                                changes_log.append(f"name: '{sklad_item.name}' -> '{name}'")
+                                sklad_item.name = name
+                                has_changes = True
+                            if sklad_item.unit != unit:
+                                changes_log.append(f"unit: '{sklad_item.unit}' -> '{unit}'")
+                                sklad_item.unit = unit
+                                has_changes = True
+                            # Add imported quantity to existing quantity instead of replacing
+                            if quantity > 0:  # Only add if we have a positive quantity to add
+                                old_quantity = sklad_item.quantity
+                                new_quantity = sklad_item.quantity + quantity
+                                changes_log.append(f"quantity: {old_quantity} -> {new_quantity} (added {quantity})")
+                                sklad_item.quantity = new_quantity
+                                has_changes = True
+                            if sklad_item.purchase_price != purchase_price:
+                                changes_log.append(f"purchase_price: {sklad_item.purchase_price} -> {purchase_price}")
+                                sklad_item.purchase_price = purchase_price
+                                has_changes = True
+                            if not sklad_item.is_active:
+                                changes_log.append(f"is_active: {sklad_item.is_active} -> True")
+                                sklad_item.is_active = True
+                                has_changes = True
+                            
+                            if has_changes:
+                                sklad_item.save()
+                                updated_count += 1
+                                affected_items['updated'].append({
+                                    'article_number': article_number,
+                                    'name': name,
+                                    'unit': unit,
+                                    'quantity': float(sklad_item.quantity),  # Use final quantity after addition
+                                    'purchase_price': float(purchase_price),
+                                    'old_values': old_values,
+                                    'changes': changes_log
+                                })
+                            else:
+                                # No changes needed, count as skipped
+                                skipped_count += 1
+                    else:
+                        sklad_item, created = Sklad.objects.get_or_create(
+                            article_number=article_number,
+                            defaults={
+                                'name': name,
+                                'unit': unit,  # Use actual unit from PDF
+                                'quantity': quantity,
+                                'purchase_price': purchase_price,
+                                'is_active': True
+                            }
+                        )
+                        if created:
+                            created_count += 1
+                        else:
+                            errors_count += 1
+                            
+                except Exception as e:
+                    errors_count += 1
+                    continue
+                    
+    except Exception as e:
+        raise Exception(f"Error processing Пежо PDF: {str(e)}")
+    
+    return {
+        'created': created_count,
+        'updated': updated_count,
+        'errors': errors_count,
+        'skipped': skipped_count,
+        'total': created_count + updated_count + errors_count + skipped_count,
+        'invoice_date': invoice_date,
+        'affected_items': affected_items
+    }
+
+
+def sklad_import_stats(request):
+    """Statistics page showing latest imports by provider"""
+    from django.db.models import Sum
+    
+    # Get provider filter from request
+    provider_filter = request.GET.get('provider', '')
+    
+    # Base queryset for recent imports
+    recent_imports_queryset = ImportLog.objects.all()
+    if provider_filter:
+        recent_imports_queryset = recent_imports_queryset.filter(provider=provider_filter)
+    
+    # Get recent imports (last 10)
+    recent_imports = recent_imports_queryset[:10]
+    
+    # Get latest import for each provider
+    latest_imports = {}
+    
+    for provider_code, provider_name in ImportLog.PROVIDER_CHOICES:
+        latest_import = ImportLog.objects.filter(provider=provider_code).first()
+        if latest_import:
+            latest_imports[provider_code] = {
+                "name": provider_name,
+                "import": latest_import,
+                "total_imports": ImportLog.objects.filter(provider=provider_code).count(),
+                "successful_imports": ImportLog.objects.filter(provider=provider_code, is_successful=True).count(),
+                "total_items_created": ImportLog.objects.filter(provider=provider_code).aggregate(
+                    total=Sum("items_created")
+                )["total"] or 0,
+                "total_items_updated": ImportLog.objects.filter(provider=provider_code).aggregate(
+                    total=Sum("items_updated")
+                )["total"] or 0,
+            }
+    
+    # Get total statistics (filtered if provider selected)
+    total_imports = recent_imports_queryset.count()
+    successful_imports = recent_imports_queryset.filter(is_successful=True).count()
+    total_items_created = recent_imports_queryset.aggregate(
+        total=Sum("items_created")
+    )["total"] or 0
+    total_items_updated = recent_imports_queryset.aggregate(
+        total=Sum("items_updated")
+    )["total"] or 0
+    
+    context = {
+        "latest_imports": latest_imports,
+        "recent_imports": recent_imports,
+        "total_imports": total_imports,
+        "successful_imports": successful_imports,
+        "total_items_created": total_items_created,
+        "total_items_updated": total_items_updated,
+        "provider_filter": provider_filter,
+        "provider_choices": ImportLog.PROVIDER_CHOICES,
+    }
+    
+    return render(request, "dashboard/sklad_import_stats.html", context)
+
+
+def sklad_import_detail(request, import_id):
+    """Show detailed information about a specific import"""
+    from django.shortcuts import get_object_or_404
+    
+    import_log = get_object_or_404(ImportLog, id=import_id)
+    
+    # Get affected items from the import log
+    affected_items = import_log.affected_items or {'created': [], 'updated': []}
+    
+    context = {
+        'import_log': import_log,
+        'affected_items': affected_items,
+    }
+    
+    return render(request, "dashboard/sklad_import_detail.html", context)
+
+
+def sklad_import_delete(request, import_id):
+    """Delete a specific import log"""
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    
+    import_log = get_object_or_404(ImportLog, id=import_id)
+    
+    if request.method == 'POST':
+        provider_name = import_log.get_provider_display()
+        import_log.delete()
+        messages.success(request, f'Импортът от {provider_name} ({import_log.invoice_date}) беше изтрит успешно.')
+        return redirect('sklad_import_stats')
+    
+    context = {
+        'import_log': import_log,
+    }
+    
+    return render(request, "dashboard/sklad_import_confirm_delete.html", context)
+
+
+def sklad_import_bulk_delete(request):
+    """Bulk delete import logs"""
+    from django.shortcuts import redirect
+    from django.contrib import messages
+    
+    if request.method == 'POST':
+        # Get all import logs
+        import_logs = ImportLog.objects.all()
+        count = import_logs.count()
+        
+        if count > 0:
+            import_logs.delete()
+            messages.success(request, f'Успешно изтрихте {count} импорт лога.')
+        else:
+            messages.info(request, 'Няма импорт логове за изтриване.')
+        
+        return redirect('sklad_import_stats')
+    
+    # Show confirmation page
+    import_logs = ImportLog.objects.all()
+    context = {
+        'import_logs': import_logs,
+        'total_count': import_logs.count()
+    }
+    
+    return render(request, "dashboard/sklad_import_bulk_delete.html", context)

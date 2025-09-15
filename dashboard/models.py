@@ -499,10 +499,92 @@ class Sklad(models.Model):
             models.Index(fields=['is_active']),
         ]
     
-    def __str__(self):
-        return f"{self.article_number} - {self.name}"
-    
     def save(self, *args, **kwargs):
         """Override save to ensure article_number is uppercase"""
         self.article_number = self.article_number.upper()
         super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.article_number} - {self.name}"
+
+
+class ImportLog(models.Model):
+    """Model to track import operations and their details"""
+    
+    PROVIDER_CHOICES = [
+        ('starts94', 'Старс 94'),
+        ('peugeot', 'Пежо'),
+        ('nalichnosti', 'НАЛИЧНОСТИ'),
+    ]
+    
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        verbose_name="Доставчик"
+    )
+    
+    invoice_date = models.DateField(
+        verbose_name="Дата на фактурата",
+        help_text="Дата от фактурата/документа"
+    )
+    
+    import_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата на импорт"
+    )
+    
+    file_name = models.CharField(
+        max_length=255,
+        verbose_name="Име на файла"
+    )
+    
+    items_created = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Създадени артикули"
+    )
+    
+    items_updated = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Обновени артикули"
+    )
+    
+    errors_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Грешки"
+    )
+    
+    skipped_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Пропуснати редове"
+    )
+    
+    total_processed = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Общо обработени"
+    )
+    
+    is_successful = models.BooleanField(
+        default=True,
+        verbose_name="Успешен импорт"
+    )
+    
+    error_message = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Съобщение за грешка"
+    )
+    
+    affected_items = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name="Засегнати артикули",
+        help_text="JSON с детайли за създадените и обновените артикули"
+    )
+    
+    class Meta:
+        verbose_name = "Импорт лог"
+        verbose_name_plural = "Импорт логове"
+        ordering = ['-import_date']
+    
+    def __str__(self):
+        return f"{self.get_provider_display()} - {self.invoice_date} ({self.import_date.strftime('%d.%m.%Y %H:%M')})"
