@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: car-service-web
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://car_service_user:${DB_PASSWORD}@db:5432/car_service_db
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - car_service_network
+
+  db:
+    image: postgres:16
+    container_name: car-service-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=car_service_db
+      - POSTGRES_USER=car_service_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U car_service_user -d car_service_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - car_service_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: car-service-nginx
+    restart: unless-stopped
+    ports:
+      - "8030:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - web
+    networks:
+      - car_service_network
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  car_service_network:
+    driver: bridge

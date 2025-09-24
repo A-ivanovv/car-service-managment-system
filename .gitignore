@@ -226,3 +226,9 @@ node_modules/
 
 # Excel files with Cyrillic names
 *НАЛИЧНОСТИ*.xlsx
+
+# Production deployment files (sensitive data)
+database-exports/
+*.mdb
+*.pdf
+.env.production
