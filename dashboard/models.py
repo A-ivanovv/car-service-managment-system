@@ -508,6 +508,296 @@ class Sklad(models.Model):
         return f"{self.article_number} - {self.name}"
 
 
+class Order(models.Model):
+    """Order model for car service repairs"""
+    
+    ORDER_STATUS_CHOICES = [
+        ('offer', 'Оферта'),
+        ('invoice', 'Изготвена фактура'),
+    ]
+    
+    # Order basic information
+    order_number = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Номер на поръчката",
+        help_text="Уникален номер на поръчката"
+    )
+    
+    order_date = models.DateField(
+        verbose_name="Дата на поръчката",
+        help_text="Дата на създаване на поръчката"
+    )
+    
+    # Car information (can be linked to existing car or standalone)
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Кола",
+        help_text="Изберете кола от базата данни"
+    )
+    
+    # Standalone car information (if not linked to existing car)
+    car_brand_model = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Марка и модел",
+        help_text="Например: C4 Picasso"
+    )
+    car_vin = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="VIN/Шаси номер",
+        help_text="Уникален номер на шасито"
+    )
+    car_plate_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name="Регистрационен номер",
+        help_text="Например: СВ5602TK"
+    )
+    car_mileage = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        verbose_name="Изминати км",
+        help_text="Текущ пробег на колата"
+    )
+    
+    # Client information (can be linked to existing client or standalone)
+    client = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Клиент",
+        help_text="Изберете клиент от базата данни"
+    )
+    
+    # Standalone client information (if not linked to existing client)
+    client_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Име на клиента",
+        help_text="Име на клиента"
+    )
+    client_address = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Адрес на клиента",
+        help_text="Адрес на клиента"
+    )
+    client_phone = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Телефон на клиента",
+        help_text="Телефонен номер на клиента"
+    )
+    
+    # Employees working on this order
+    employees = models.ManyToManyField(
+        Employee,
+        blank=True,
+        verbose_name="Служители",
+        help_text="Служители, които работят по тази поръчка"
+    )
+    
+    # Order status and notes
+    status = models.CharField(
+        max_length=20,
+        choices=ORDER_STATUS_CHOICES,
+        default='pending',
+        verbose_name="Статус"
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Бележки",
+        help_text="Допълнителни бележки за поръчката"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Създадена на")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновена на")
+    
+    class Meta:
+        verbose_name = "Поръчка"
+        verbose_name_plural = "Поръчки"
+        ordering = ['-order_date', '-created_at']
+        indexes = [
+            models.Index(fields=['order_number']),
+            models.Index(fields=['order_date']),
+            models.Index(fields=['status']),
+            models.Index(fields=['car_vin']),
+            models.Index(fields=['car_plate_number']),
+        ]
+    
+    def __str__(self):
+        return f"Поръчка {self.order_number} - {self.get_car_display()} - {self.get_client_display()}"
+    
+    def get_car_display(self):
+        """Return car display name"""
+        if self.car:
+            return self.car.display_name
+        elif self.car_brand_model:
+            parts = [self.car_brand_model]
+            if self.car_plate_number:
+                parts.append(f"({self.car_plate_number})")
+            elif self.car_vin:
+                parts.append(f"VIN: {self.car_vin}")
+            return " ".join(parts)
+        return "Неизвестна кола"
+    
+    def get_client_display(self):
+        """Return client display name"""
+        if self.client:
+            return self.client.customer_name
+        elif self.client_name:
+            return self.client_name
+        return "Неизвестен клиент"
+    
+    @property
+    def total_without_vat(self):
+        """Calculate total without VAT"""
+        return sum(item.total_price for item in self.order_items.all())
+    
+    @property
+    def total_vat(self):
+        """Calculate total VAT (20%) for items that include VAT"""
+        return sum(item.total_vat for item in self.order_items.all())
+    
+    @property
+    def total_with_vat(self):
+        """Calculate total with VAT"""
+        return sum(item.total_price_with_vat for item in self.order_items.all())
+    
+    @property
+    def labor_total(self):
+        """Calculate total labor costs"""
+        return sum(item.total_price for item in self.order_items.filter(is_labor=True))
+
+
+class OrderItem(models.Model):
+    """Order item model for parts and services used in orders"""
+    
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='order_items',
+        verbose_name="Поръчка"
+    )
+    
+    # Part information (can be linked to existing sklad item or standalone)
+    sklad_item = models.ForeignKey(
+        Sklad,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Артикул от склад",
+        help_text="Изберете артикул от склад"
+    )
+    
+    # Standalone part information (if not linked to existing sklad item)
+    article_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Артикул номер",
+        help_text="Номер на артикула"
+    )
+    name = models.CharField(
+        max_length=255,
+        verbose_name="Наименование",
+        help_text="Наименование на артикула или услугата"
+    )
+    unit = models.CharField(
+        max_length=20,
+        verbose_name="Мерна единица",
+        help_text="бр, кг, л, м, норма, и т.н."
+    )
+    
+    # Pricing information
+    purchase_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Единична цена без ДДС",
+        help_text="Цена за единица без ДДС"
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Количество",
+        help_text="Количество"
+    )
+    
+    # Service type
+    is_labor = models.BooleanField(
+        default=False,
+        verbose_name="Труд",
+        help_text="Отметнете ако това е труд/услуга"
+    )
+    
+    # VAT inclusion
+    include_vat = models.BooleanField(
+        default=True,
+        verbose_name="Включи ДДС",
+        help_text="Отметнете ако артикулът трябва да включва ДДС"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Създаден на")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновен на")
+    
+    class Meta:
+        verbose_name = "Артикул от поръчка"
+        verbose_name_plural = "Артикули от поръчка"
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['order']),
+            models.Index(fields=['is_labor']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.quantity} {self.unit}"
+    
+    @property
+    def price_with_vat(self):
+        """Calculate price with VAT (20%) if include_vat is True"""
+        from decimal import Decimal
+        if self.include_vat:
+            return self.purchase_price * Decimal('1.20')
+        return self.purchase_price
+    
+    @property
+    def total_price(self):
+        """Calculate total price without VAT"""
+        return self.purchase_price * self.quantity
+    
+    @property
+    def total_vat(self):
+        """Calculate total VAT (20%) if include_vat is True"""
+        from decimal import Decimal
+        if self.include_vat:
+            return self.total_price * Decimal('0.20')
+        return Decimal('0.00')
+    
+    @property
+    def total_price_with_vat(self):
+        """Calculate total price with VAT if include_vat is True"""
+        from decimal import Decimal
+        if self.include_vat:
+            return self.total_price * Decimal('1.20')
+        return self.total_price
+
+
 class ImportLog(models.Model):
     """Model to track import operations and their details"""
     

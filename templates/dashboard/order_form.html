@@ -1,0 +1,473 @@
+{% load static %}
+{% load currency_filters %}
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Автосервиз</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .autocomplete-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .autocomplete-item:hover {
+            background-color: #f8f9fa;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-wrench me-2"></i>Автосервиз
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Главно табло
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'klienti' %}">
+                            <i class="fas fa-users me-1"></i>Клиенти
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'fakturi' %}">
+                            <i class="fas fa-file-invoice me-1"></i>Фактури
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'poruchki' %}">
+                            <i class="fas fa-clipboard-list me-1"></i>Поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'pregled_poruchki' %}">
+                            <i class="fas fa-eye me-1"></i>Преглед на поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'slujiteli' %}">
+                            <i class="fas fa-user-tie me-1"></i>Служители
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'sklad' %}">
+                            <i class="fas fa-warehouse me-1"></i>Склад
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-clipboard-list me-2"></i>{{ title }}</h1>
+                <a href="{% url 'poruchki' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Назад към поръчки
+                </a>
+            </div>
+
+            <form method="post" id="orderForm">
+                {% csrf_token %}
+                
+                <!-- Order Basic Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Основна информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Служители</label>
+                                    {{ form.employees }}
+                                    {% if form.employees.errors %}
+                                        <div class="text-danger">{{ form.employees.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Номер на поръчката</label>
+                                    <input type="text" class="form-control" value="Ще се генерира автоматично" readonly>
+                                    <small class="form-text text-muted">Номерът ще се генерира автоматично при запазване</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Car Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-car me-2"></i>Информация за колата</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.car.label_tag }}
+                                    {{ form.car }}
+                                    {% if form.car.errors %}
+                                        <div class="text-danger">{{ form.car.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Или попълнете ръчно полетата отдолу</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.car_brand_model.label_tag }}
+                                    {{ form.car_brand_model }}
+                                    {% if form.car_brand_model.errors %}
+                                        <div class="text-danger">{{ form.car_brand_model.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.car_vin.label_tag }}
+                                    {{ form.car_vin }}
+                                    {% if form.car_vin.errors %}
+                                        <div class="text-danger">{{ form.car_vin.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.car_plate_number.label_tag }}
+                                    {{ form.car_plate_number }}
+                                    {% if form.car_plate_number.errors %}
+                                        <div class="text-danger">{{ form.car_plate_number.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.car_mileage.label_tag }}
+                                    {{ form.car_mileage }}
+                                    {% if form.car_mileage.errors %}
+                                        <div class="text-danger">{{ form.car_mileage.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-user me-2"></i>Информация за клиента</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.client.label_tag }}
+                                    {{ form.client }}
+                                    {% if form.client.errors %}
+                                        <div class="text-danger">{{ form.client.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Или попълнете ръчно полетата отдолу</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.client_name.label_tag }}
+                                    {{ form.client_name }}
+                                    {% if form.client_name.errors %}
+                                        <div class="text-danger">{{ form.client_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.client_address.label_tag }}
+                                    {{ form.client_address }}
+                                    {% if form.client_address.errors %}
+                                        <div class="text-danger">{{ form.client_address.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.client_phone.label_tag }}
+                                    {{ form.client_phone }}
+                                    {% if form.client_phone.errors %}
+                                        <div class="text-danger">{{ form.client_phone.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Items -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Артикули и услуги</h5>
+                            <div class="mt-1">{% currency_info %}</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary" id="addItemBtn">
+                            <i class="fas fa-plus me-1"></i>Добави артикул
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="itemsTable">
+                                <thead>
+                                    <tr>
+                                        <th width="5%">#</th>
+                                        <th width="15%">Артикул номер</th>
+                                        <th width="25%">Наименование</th>
+                                        <th width="10%">Мерна единица</th>
+                                        <th width="10%">Количество</th>
+                                        <th width="6%">Ед. цена без ДДС</th>
+                                        <th width="6%">Цена с ДДС</th>
+                                        <th width="6%">Обща цена</th>
+                                        <th width="6%">Включи ДДС</th>
+                                        <th width="5%">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itemsTableBody">
+                                    {{ item_formset.management_form }}
+                                    {% for form in item_formset %}
+                                        <tr class="item-row">
+                                            <td class="text-center">{{ forloop.counter }}</td>
+                                            <td style="display: none;">
+                                                {{ form.sklad_item }}
+                                            </td>
+                                            <td>
+                                                {{ form.article_number }}
+                                                {% if form.article_number.errors %}
+                                                    <div class="text-danger">{{ form.article_number.errors }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.name }}
+                                                {% if form.name.errors %}
+                                                    <div class="text-danger">{{ form.name.errors }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.unit }}
+                                                {% if form.unit.errors %}
+                                                    <div class="text-danger">{{ form.unit.errors }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.quantity }}
+                                                {% if form.quantity.errors %}
+                                                    <div class="text-danger">{{ form.quantity.errors }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.purchase_price }}
+                                                {% if form.purchase_price.errors %}
+                                                    <div class="text-danger">{{ form.purchase_price.errors }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="price-with-vat">
+                                                <div class="bgn-price">0.00 лв.</div>
+                                                <div class="eur-price text-muted small">0.00 €</div>
+                                            </td>
+                                            <td class="total-price">
+                                                <div class="bgn-price">0.00 лв.</div>
+                                                <div class="eur-price text-muted small">0.00 €</div>
+                                            </td>
+                                            <td class="text-center">
+                                                {{ form.include_vat }}
+                                                {% if form.include_vat.errors %}
+                                                    <div class="text-danger">{{ form.include_vat.errors }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-outline-primary sklad-modal-btn" title="Избери от склад">
+                                                    <i class="fas fa-warehouse"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" title="Премахни">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-info">
+                                        <td colspan="8" class="text-end"><strong>Общо без ДДС:</strong></td>
+                                        <td id="totalWithoutVat">
+                                            <div class="bgn-price">0.00 лв.</div>
+                                            <div class="eur-price text-muted small">0.00 €</div>
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr class="table-info" id="vatRow" style="display: none;">
+                                        <td colspan="8" class="text-end"><strong>ДДС 20%:</strong></td>
+                                        <td id="totalVat">
+                                            <div class="bgn-price">0.00 лв.</div>
+                                            <div class="eur-price text-muted small">0.00 €</div>
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td colspan="8" class="text-end"><strong id="totalLabel">Общо с ДДС:</strong></td>
+                                        <td id="totalWithVat">
+                                            <div class="bgn-price">0.00 лв.</div>
+                                            <div class="eur-price text-muted small">0.00 €</div>
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Бележки</h5>
+                    </div>
+                    <div class="card-body">
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger">{{ form.notes.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'poruchki' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i>Отказ
+                    </a>
+                    <div class="btn-group" role="group">
+                        <button type="submit" name="action" value="offer" class="btn btn-warning">
+                            <i class="fas fa-file-contract me-1"></i>Генерирай оферта
+                        </button>
+                        <button type="submit" name="action" value="invoice" class="btn btn-success">
+                            <i class="fas fa-file-invoice me-1"></i>Генерирай фактура
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Sklad Modal -->
+<div class="modal fade" id="skladModal" tabindex="-1" aria-labelledby="skladModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="skladModalLabel">Артикули в склада</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Search and Filter Section -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Търсене:</label>
+                        <input type="text" class="form-control" id="skladSearch" placeholder="Търсене по артикул, наименование...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Мерна единица:</label>
+                        <select class="form-select" id="skladUnitFilter">
+                            <option value="">Всички мерни единици</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-secondary" id="skladClearBtn">
+                                <i class="fas fa-times me-1"></i>Изчисти
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sklad Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered" id="skladTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Артикул N</th>
+                                <th>Наименование</th>
+                                <th>Мр.</th>
+                                <th>Наличност</th>
+                                <th>Дост. цена</th>
+                                <th>Стойност</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody id="skladTableBody">
+                            <!-- Sklad items will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <nav aria-label="Sklad pagination" id="skladPagination">
+                    <ul class="pagination justify-content-center" id="skladPaginationList">
+                        <!-- Pagination will be loaded here -->
+                    </ul>
+                </nav>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Autocomplete dropdowns -->
+<div id="autocompleteDropdowns"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/order_form.js' %}"></script>
+</body>
+</html>

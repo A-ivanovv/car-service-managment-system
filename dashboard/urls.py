@@ -10,6 +10,7 @@ urlpatterns = [
     path('klienti/<int:pk>/', views.customer_detail, name='customer_detail'),
     path('klienti/<int:pk>/edit/', views.customer_edit, name='customer_edit'),
     path('klienti/<int:pk>/delete/', views.customer_delete, name='customer_delete'),
+    path('koli/<int:car_id>/poruchki/', views.car_orders, name='car_orders'),
     
     # Employee URLs
     path('slujiteli/', views.slujiteli, name='slujiteli'),
@@ -23,9 +24,39 @@ urlpatterns = [
     path('slujiteli/otpusk/<int:pk>/edit/', views.days_off_edit, name='days_off_edit'),
     path('slujiteli/otpusk/<int:pk>/delete/', views.days_off_delete, name='days_off_delete'),
     
+    # Order URLs
+    path('poruchki/', views.poruchki, name='poruchki'),
+    path('poruchki/nov/', views.order_create, name='order_create'),
+    path('poruchki/<int:pk>/', views.order_detail, name='order_detail'),
+    path('poruchki/<int:pk>/edit/', views.order_edit, name='order_edit'),
+    path('poruchki/<int:pk>/delete/', views.order_delete, name='order_delete'),
+    
+    # Order autocomplete URLs
+    path('poruchki/autocomplete/car-vin/', views.order_autocomplete_car_vin, name='order_autocomplete_car_vin'),
+    path('poruchki/autocomplete/car-plate/', views.order_autocomplete_car_plate, name='order_autocomplete_car_plate'),
+    path('poruchki/autocomplete/client/', views.order_autocomplete_client, name='order_autocomplete_client'),
+    path('poruchki/autocomplete/sklad/', views.order_autocomplete_sklad, name='order_autocomplete_sklad'),
+    path('poruchki/get-car-info/', views.order_get_car_info, name='order_get_car_info'),
+    path('poruchki/get-client-info/', views.order_get_client_info, name='order_get_client_info'),
+    
+    # Order sklad modal URLs
+    path('poruchki/sklad-modal-data/', views.order_sklad_modal_data, name='order_sklad_modal_data'),
+    path('poruchki/sklad-units/', views.order_sklad_units, name='order_sklad_units'),
+    
+    # Currency rate URL
+    path('poruchki/currency-rate/', views.currency_rate, name='currency_rate'),
+    
+    # Order PDF generation URLs
+    path('poruchki/<int:pk>/generate-offer/', views.order_generate_offer, name='order_generate_offer'),
+    path('poruchki/<int:pk>/generate-invoice/', views.order_generate_invoice, name='order_generate_invoice'),
+    
+    # Order preview and conversion URLs
+    path('poruchki/<int:pk>/preview-offer/', views.order_preview_offer, name='order_preview_offer'),
+    path('poruchki/<int:pk>/preview-invoice/', views.order_preview_invoice, name='order_preview_invoice'),
+    path('poruchki/<int:pk>/convert-to-invoice/', views.order_convert_to_invoice, name='order_convert_to_invoice'),
+    
     # Other pages
     path('fakturi/', views.fakturi, name='fakturi'),
-    path('poruchki/', views.poruchki, name='poruchki'),
     path('pregled-poruchki/', views.pregled_poruchki, name='pregled_poruchki'),
     path('slujiteli/', views.slujiteli, name='slujiteli'),
     path('sklad/', views.sklad, name='sklad'),

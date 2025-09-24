@@ -1,0 +1,248 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поръчки за {{ car.brand_model }} - Автосервиз</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-wrench me-2"></i>Автосервиз
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Главно табло
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'klienti' %}">
+                            <i class="fas fa-users me-1"></i>Клиенти
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'fakturi' %}">
+                            <i class="fas fa-file-invoice me-1"></i>Фактури
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'poruchki' %}">
+                            <i class="fas fa-clipboard-list me-1"></i>Поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'pregled_poruchki' %}">
+                            <i class="fas fa-eye me-1"></i>Преглед на поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'slujiteli' %}">
+                            <i class="fas fa-user-tie me-1"></i>Служители
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'sklad' %}">
+                            <i class="fas fa-warehouse me-1"></i>Склад
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1><i class="fas fa-car me-2"></i>Поръчки за {{ car.brand_model }}</h1>
+                        <p class="text-muted mb-0">
+                            {% if car.vin %}VIN: {{ car.vin }} | {% endif %}
+                            {% if car.plate_number %}Рег. номер: {{ car.plate_number }}{% endif %}
+                        </p>
+                    </div>
+                    <div class="btn-group">
+                        <a href="{% url 'customer_detail' car.customer.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Назад към клиента
+                        </a>
+                        <a href="{% url 'order_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Нова поръчка
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Search and Filter -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="search" class="form-label">Търсене:</label>
+                                <input type="text" class="form-control" id="search" name="search" 
+                                       value="{{ search_query }}" placeholder="Номер на поръчка, клиент, бележки...">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="status" class="form-label">Статус:</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">Всички статуси</option>
+                                    {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-1"></i>Търси
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <a href="{% url 'car_orders' car.pk %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Изчисти
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Orders Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i>
+                            Поръчки ({{ orders.paginator.count }})
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if orders %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Номер</th>
+                                            <th>Дата</th>
+                                            <th>Клиент</th>
+                                            <th>Статус</th>
+                                            <th>Общо</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in orders %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ order.order_number }}</strong>
+                                            </td>
+                                            <td>{{ order.order_date|date:"d.m.Y" }}</td>
+                                            <td>{{ order.get_client_display }}</td>
+                                            <td>
+                                                {% if order.status == 'pending' %}
+                                                    <span class="badge bg-warning">{{ order.get_status_display }}</span>
+                                                {% elif order.status == 'in_progress' %}
+                                                    <span class="badge bg-info">{{ order.get_status_display }}</span>
+                                                {% elif order.status == 'completed' %}
+                                                    <span class="badge bg-success">{{ order.get_status_display }}</span>
+                                                {% elif order.status == 'cancelled' %}
+                                                    <span class="badge bg-danger">{{ order.get_status_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-bold">{{ order.total_with_vat|floatformat:2 }} лв.</span>
+                                                    <small class="text-muted">без ДДС: {{ order.total_without_vat|floatformat:2 }} лв.</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{% url 'order_detail' order.pk %}" class="btn btn-outline-primary" title="Преглед">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{% url 'order_edit' order.pk %}" class="btn btn-outline-warning" title="Редактирай">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'order_delete' order.pk %}" class="btn btn-outline-danger" title="Изтрий">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            {% if orders.has_other_pages %}
+                            <nav aria-label="Orders pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if orders.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Първа</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ orders.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Предишна</a>
+                                        </li>
+                                    {% endif %}
+
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ orders.number }} от {{ orders.paginator.num_pages }}</span>
+                                    </li>
+
+                                    {% if orders.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ orders.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Следваща</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ orders.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Последна</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Няма поръчки за тази кола</h5>
+                                <p class="text-muted">Все още не са създадени поръчки за {{ car.brand_model }}.</p>
+                                <a href="{% url 'order_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Създай първа поръчка
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+{% load currency_filters %}
+<div class="invoice-preview">
+    <!-- Company Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-center">
+                <h3 class="text-primary mb-0">ФАКТУРА</h3>
+                <hr class="border-primary">
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Information -->
+    <div class="row mb-4">
+        <div class="col-6">
+            <h5 class="text-primary">АВТОЛАБОРАТОРИЯ ООД</h5>
+            <p class="mb-1"><strong>Адрес:</strong> гр. СОФИЯ, ЖК. ТОЛСТОЙ, БЛ. 60, ЕТ. 4</p>
+            <p class="mb-1"><strong>ЕИК:</strong> 203375580</p>
+            <p class="mb-1"><strong>ДДС №:</strong> BG203375580</p>
+            <p class="mb-0"><strong>МОЛ:</strong> ОГНЯН КОСТОВ</p>
+        </div>
+        <div class="col-6">
+            <h5 class="text-primary">Информация за фактурата</h5>
+            <p class="mb-1"><strong>Номер на фактурата:</strong> {{ order.order_number }}</p>
+            <p class="mb-1"><strong>Дата:</strong> {{ order.order_date|date:"d.m.Y" }}</p>
+            <p class="mb-1"><strong>Клиент:</strong> {{ order.client_name }}</p>
+            <p class="mb-1"><strong>Адрес:</strong> {{ order.client_address|default:"Не е посочен" }}</p>
+            <p class="mb-1"><strong>Телефон:</strong> {{ order.client_phone|default:"Не е посочен" }}</p>
+            <p class="mb-0"><strong>Кола:</strong> {{ order.car_brand_model }} ({{ order.car_plate_number|default:"Без рег. номер" }})</p>
+        </div>
+    </div>
+
+    <!-- Car Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="text-primary">Информация за колата</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>VIN:</strong> {{ order.car_vin|default:"Не е посочен" }}</p>
+                    <p class="mb-0"><strong>Пробег:</strong> {{ order.car_mileage|default:"Не е посочен" }} км</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="text-primary">Артикули и услуги</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-primary">
+                        <tr>
+                            <th class="text-center">№</th>
+                            <th>Наименование</th>
+                            <th class="text-center">Мярка</th>
+                            <th class="text-center">Колич.</th>
+                            <th class="text-end">Ед. цена</th>
+                            <th class="text-end">Общо без ДДС</th>
+                            <th class="text-end">ДДС 20%</th>
+                            <th class="text-end">Общо с ДДС</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.order_items.all %}
+                        <tr>
+                            <td class="text-center">{{ forloop.counter }}</td>
+                            <td>{{ item.name }}</td>
+                            <td class="text-center">{{ item.unit }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">{{ item.purchase_price|dual_currency }}</td>
+                            <td class="text-end">{{ item.total_price|dual_currency }}</td>
+                            <td class="text-end">{{ item.total_vat|dual_currency }}</td>
+                            <td class="text-end">{{ item.total_price_with_vat|dual_currency }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-primary fw-bold">
+                            <td colspan="5" class="text-end">ОБЩО:</td>
+                            <td class="text-end">{{ order.total_without_vat|dual_currency }}</td>
+                            <td class="text-end">{{ order.total_vat|dual_currency }}</td>
+                            <td class="text-end">{{ order.total_with_vat|dual_currency }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bank Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="text-primary">Банкова информация</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Банка:</strong> УниКредит Булбанк АД</p>
+                    <p class="mb-1"><strong>IBAN:</strong> BG18UNCR70001523123456</p>
+                    <p class="mb-1"><strong>BIC:</strong> UNCRBGSF</p>
+                    <p class="mb-0"><strong>Получател:</strong> Автосервиз Дейански</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    {% if order.notes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="text-primary">Забележки</h5>
+            <p class="border p-3 bg-light">{{ order.notes }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center text-muted">
+                <small>Благодарим за доверието!</small>
+            </div>
+        </div>
+    </div>
+</div>

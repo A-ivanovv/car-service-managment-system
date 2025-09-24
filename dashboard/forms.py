@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
-from .models import Customer, Car, Employee, DaysOff, Sklad
+from .models import Customer, Car, Employee, DaysOff, Sklad, Order, OrderItem
 
 class CustomerForm(forms.ModelForm):
     """Form for creating and editing customers"""
@@ -9,7 +9,7 @@ class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = [
-            'customer_name', 'customer_address_1', 'customer_address_2',
+            'number', 'customer_name', 'customer_address_1', 'customer_address_2',
             'customer_mol', 'customer_taxno', 'customer_doctype', 'receiver',
             'receiver_details', 'customer_bulstat', 'telno', 'faxno', 'email',
             'res_address_1', 'res_address_2', 'eidate', 'include', 'active',
@@ -17,6 +17,11 @@ class CustomerForm(forms.ModelForm):
         ]
     
         widgets = {
+            'number': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Автоматично генериран',
+                'readonly': True
+            }),
             'customer_name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Въведете име на клиента'
@@ -110,32 +115,40 @@ class CustomerForm(forms.ModelForm):
         # Mark required fields
         self.fields['customer_name'].required = True
         self.fields['customer_name'].widget.attrs['required'] = True
+        
+        # Auto-generate customer number for new customers
+        if not self.instance.pk:  # Only for new customers
+            last_customer = Customer.objects.order_by('-number').first()
+            if last_customer:
+                next_number = last_customer.number + 1
+            else:
+                next_number = 1
+            self.fields['number'].initial = next_number
     
-        labels = {
-            'number': 'Номер',
-            'customer_name': 'Име на клиент',
-            'customer_address_1': 'Адрес 1',
-            'customer_address_2': 'Адрес 2',
-            'customer_mol': 'МОЛ',
-            'customer_taxno': 'ДДС номер',
-            'customer_doctype': 'Тип документ',
-            'receiver': 'Получател',
-            'receiver_details': 'Детайли за получател',
-            'customer_bulstat': 'БУЛСТАТ',
-            'telno': 'Телефон',
-            'faxno': 'Факс',
-            'email': 'Имейл',
-            'res_address_1': 'Адрес за живеене 1',
-            'res_address_2': 'Адрес за живеене 2',
-            'eidate': 'Дата на влизане',
-            'include': 'Включен',
-            'active': 'Активен',
-            'customer': 'Клиент',
-            'supplier': 'Доставчик',
-            'contact': 'Контакт',
-            'partida': 'Партида',
-            'bulstatletter': 'БУЛСТАТ буква',
-        }
+        # Set field labels
+        self.fields['number'].label = 'Номер'
+        self.fields['customer_name'].label = 'Име на клиент'
+        self.fields['customer_address_1'].label = 'Адрес 1'
+        self.fields['customer_address_2'].label = 'Адрес 2'
+        self.fields['customer_mol'].label = 'МОЛ'
+        self.fields['customer_taxno'].label = 'ДДС номер'
+        self.fields['customer_doctype'].label = 'Тип документ'
+        self.fields['receiver'].label = 'Получател'
+        self.fields['receiver_details'].label = 'Детайли за получател'
+        self.fields['customer_bulstat'].label = 'БУЛСТАТ'
+        self.fields['telno'].label = 'Телефон'
+        self.fields['faxno'].label = 'Факс'
+        self.fields['email'].label = 'Имейл'
+        self.fields['res_address_1'].label = 'Адрес за живеене 1'
+        self.fields['res_address_2'].label = 'Адрес за живеене 2'
+        self.fields['eidate'].label = 'Дата на влизане'
+        self.fields['include'].label = 'Включен'
+        self.fields['active'].label = 'Активен'
+        self.fields['customer'].label = 'Клиент'
+        self.fields['supplier'].label = 'Доставчик'
+        self.fields['contact'].label = 'Контакт'
+        self.fields['partida'].label = 'Партида'
+        self.fields['bulstatletter'].label = 'БУЛСТАТ буква'
     
     def clean_customer_bulstat(self):
         """Validate BULSTAT format"""
@@ -505,3 +518,256 @@ class SkladSearchForm(forms.Form):
         units = Sklad.objects.values_list('unit', flat=True).distinct().order_by('unit')
         unit_choices = [('', 'Всички мерни единици')] + [(unit, unit) for unit in units if unit]
         self.fields['unit_filter'].choices = unit_choices
+
+
+class OrderForm(forms.ModelForm):
+    """Form for creating and editing orders"""
+    
+    class Meta:
+        model = Order
+        fields = [
+            'car', 'car_brand_model', 'car_vin', 
+            'car_plate_number', 'car_mileage', 'client', 'client_name', 
+            'client_address', 'client_phone', 'employees', 'notes'
+        ]
+        widgets = {
+            'car': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'car-select'
+            }),
+            'car_brand_model': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Например: C4 Picasso',
+                'id': 'car-brand-model'
+            }),
+            'car_vin': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'VIN/Шаси номер',
+                'id': 'car-vin'
+            }),
+            'car_plate_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Например: СВ5602TK',
+                'id': 'car-plate-number'
+            }),
+            'car_mileage': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Изминати км',
+                'min': '0',
+                'id': 'car-mileage'
+            }),
+            'client': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'client-select'
+            }),
+            'client_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Име на клиента',
+                'id': 'client-name'
+            }),
+            'client_address': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Адрес на клиента',
+                'id': 'client-address'
+            }),
+            'client_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Телефон на клиента',
+                'id': 'client-phone'
+            }),
+            'employees': forms.SelectMultiple(attrs={
+                'class': 'form-select',
+                'id': 'employees-select'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Допълнителни бележки за поръчката',
+                'id': 'order-notes'
+            }),
+        }
+        labels = {
+            'car': 'Кола от базата данни',
+            'car_brand_model': 'Марка и модел',
+            'car_vin': 'VIN/Шаси номер',
+            'car_plate_number': 'Регистрационен номер',
+            'car_mileage': 'Изминати км',
+            'client': 'Клиент от базата данни',
+            'client_name': 'Име на клиента',
+            'client_address': 'Адрес на клиента',
+            'client_phone': 'Телефон на клиента',
+            'employees': 'Служители',
+            'notes': 'Бележки',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add autocomplete attributes for JavaScript
+        self.fields['car_vin'].widget.attrs.update({
+            'data-autocomplete-url': '/poruchki/autocomplete/car-vin/',
+            'autocomplete': 'off'
+        })
+        self.fields['car_plate_number'].widget.attrs.update({
+            'data-autocomplete-url': '/poruchki/autocomplete/car-plate/',
+            'autocomplete': 'off'
+        })
+        self.fields['client_name'].widget.attrs.update({
+            'data-autocomplete-url': '/poruchki/autocomplete/client/',
+            'autocomplete': 'off'
+        })
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        car = cleaned_data.get('car')
+        car_brand_model = cleaned_data.get('car_brand_model')
+        car_vin = cleaned_data.get('car_vin')
+        car_plate_number = cleaned_data.get('car_plate_number')
+        
+        client = cleaned_data.get('client')
+        client_name = cleaned_data.get('client_name')
+        
+        # Validate that either car is selected or car info is provided
+        if not car and not car_brand_model:
+            raise ValidationError('Моля изберете кола от базата данни или въведете марка и модел.')
+        
+        # Validate that either client is selected or client info is provided
+        if not client and not client_name:
+            raise ValidationError('Моля изберете клиент от базата данни или въведете име на клиента.')
+        
+        return cleaned_data
+
+
+class OrderItemForm(forms.ModelForm):
+    """Form for creating and editing order items"""
+    
+    class Meta:
+        model = OrderItem
+        fields = ['sklad_item', 'article_number', 'name', 'unit', 'purchase_price', 'quantity', 'include_vat']
+        widgets = {
+            'sklad_item': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'sklad-item-select'
+            }),
+            'article_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Артикул номер',
+                'id': 'article-number'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Наименование',
+                'id': 'item-name'
+            }),
+            'unit': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'item-unit'
+            }),
+            'purchase_price': forms.NumberInput(attrs={
+                'class': 'form-control price-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+                'id': 'purchase-price'
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control quantity-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+                'id': 'quantity'
+            }),
+            'include_vat': forms.CheckboxInput(attrs={
+                'class': 'form-check-input include-vat-checkbox',
+                'id': 'include-vat'
+            }),
+        }
+        labels = {
+            'sklad_item': 'Артикул от склад',
+            'article_number': 'Артикул номер',
+            'name': 'Наименование',
+            'unit': 'Мерна единица',
+            'purchase_price': 'Единична цена без ДДС',
+            'quantity': 'Количество',
+            'include_vat': 'Включи ДДС',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['name'].required = True
+        self.fields['unit'].required = True
+        self.fields['purchase_price'].required = True
+        self.fields['quantity'].required = True
+        
+        # Populate unit choices from database
+        from .models import Sklad
+        units = Sklad.objects.values_list('unit', flat=True).distinct().order_by('unit')
+        unit_choices = [('', 'Избери мерна единица')] + [(unit, unit) for unit in units if unit]
+        self.fields['unit'].choices = unit_choices
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        sklad_item = cleaned_data.get('sklad_item')
+        article_number = cleaned_data.get('article_number')
+        name = cleaned_data.get('name')
+        
+        # Validate that either sklad_item is selected or standalone info is provided
+        if not sklad_item and not (article_number and name):
+            raise ValidationError('Моля изберете артикул от склад или въведете артикул номер и наименование.')
+        
+        return cleaned_data
+
+
+class OrderSearchForm(forms.Form):
+    """Form for searching orders"""
+    
+    search = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Търсене по номер, клиент, кола, VIN...',
+            'id': 'order-search'
+        }),
+        label='Търсене'
+    )
+    
+    status_filter = forms.ChoiceField(
+        choices=[('', 'Всички статуси')] + Order.ORDER_STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Статус'
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='От дата'
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='До дата'
+    )
+
+
+# Inline formset for order items
+OrderItemFormSet = inlineformset_factory(
+    Order,
+    OrderItem,
+    form=OrderItemForm,
+    extra=1,  # Show 1 empty form by default
+    can_delete=True,  # Allow deleting items
+    min_num=0,  # Minimum 0 items
+    validate_min=False,  # Don't validate minimum on form submission
+)

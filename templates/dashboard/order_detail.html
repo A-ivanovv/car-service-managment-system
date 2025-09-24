@@ -1,0 +1,323 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поръчка {{ order.order_number }} - Автосервиз</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-wrench me-2"></i>Автосервиз
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Главно табло
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'klienti' %}">
+                            <i class="fas fa-users me-1"></i>Клиенти
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'fakturi' %}">
+                            <i class="fas fa-file-invoice me-1"></i>Фактури
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'poruchki' %}">
+                            <i class="fas fa-clipboard-list me-1"></i>Поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'pregled_poruchki' %}">
+                            <i class="fas fa-eye me-1"></i>Преглед на поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'slujiteli' %}">
+                            <i class="fas fa-user-tie me-1"></i>Служители
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'sklad' %}">
+                            <i class="fas fa-warehouse me-1"></i>Склад
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-clipboard-list me-2"></i>Поръчка {{ order.order_number }}</h1>
+                <div class="btn-group">
+                    <a href="{% url 'order_edit' order.pk %}" class="btn btn-warning">
+                        <i class="fas fa-edit me-1"></i>Редактирай
+                    </a>
+                    <a href="{% url 'order_delete' order.pk %}" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Изтрий
+                    </a>
+                    <a href="{% url 'poruchki' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Назад
+                    </a>
+                </div>
+            </div>
+
+            <!-- Order Status Badge -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    {% if order.status == 'pending' %}
+                        <span class="badge bg-warning fs-6">{{ order.get_status_display }}</span>
+                    {% elif order.status == 'in_progress' %}
+                        <span class="badge bg-info fs-6">{{ order.get_status_display }}</span>
+                    {% elif order.status == 'completed' %}
+                        <span class="badge bg-success fs-6">{{ order.get_status_display }}</span>
+                    {% elif order.status == 'cancelled' %}
+                        <span class="badge bg-danger fs-6">{{ order.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Order Information -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация за поръчката</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Номер:</strong></div>
+                                <div class="col-sm-8">{{ order.order_number }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Дата:</strong></div>
+                                <div class="col-sm-8">{{ order.order_date|date:"d.m.Y" }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Статус:</strong></div>
+                                <div class="col-sm-8">{{ order.get_status_display }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Създадена:</strong></div>
+                                <div class="col-sm-8">{{ order.created_at|date:"d.m.Y H:i" }}</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Обновена:</strong></div>
+                                <div class="col-sm-8">{{ order.updated_at|date:"d.m.Y H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Car Information -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-car me-2"></i>Информация за колата</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Марка/Модел:</strong></div>
+                                <div class="col-sm-8">{{ order.get_car_display }}</div>
+                            </div>
+                            {% if order.car_vin %}
+                            <div class="row">
+                                <div class="col-sm-4"><strong>VIN:</strong></div>
+                                <div class="col-sm-8">{{ order.car_vin }}</div>
+                            </div>
+                            {% endif %}
+                            {% if order.car_plate_number %}
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Рег. номер:</strong></div>
+                                <div class="col-sm-8">{{ order.car_plate_number }}</div>
+                            </div>
+                            {% endif %}
+                            {% if order.car_mileage %}
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Пробег:</strong></div>
+                                <div class="col-sm-8">{{ order.car_mileage }} км</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Client Information -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Информация за клиента</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Име:</strong></div>
+                                <div class="col-sm-8">{{ order.get_client_display }}</div>
+                            </div>
+                            {% if order.client_address %}
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Адрес:</strong></div>
+                                <div class="col-sm-8">{{ order.client_address }}</div>
+                            </div>
+                            {% endif %}
+                            {% if order.client_phone %}
+                            <div class="row">
+                                <div class="col-sm-4"><strong>Телефон:</strong></div>
+                                <div class="col-sm-8">{{ order.client_phone }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employees -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-users me-2"></i>Служители</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if order.employees.all %}
+                                {% for employee in order.employees.all %}
+                                    <span class="badge bg-primary me-2 mb-2">{{ employee.full_name }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">Няма назначени служители</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Артикули и услуги</h5>
+                </div>
+                <div class="card-body">
+                    {% if items %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Артикул номер</th>
+                                        <th>Наименование</th>
+                                        <th>Мерна единица</th>
+                                        <th>Количество</th>
+                                        <th>Ед. цена без ДДС</th>
+                                        <th>Цена с ДДС</th>
+                                        <th>Обща цена без ДДС</th>
+                                        <th>Обща цена с ДДС</th>
+                                        <th>Тип</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ item.article_number|default:"-" }}</td>
+                                        <td>{{ item.name }}</td>
+                                        <td>{{ item.unit }}</td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td>{{ item.purchase_price|floatformat:2 }} лв.</td>
+                                        <td>{{ item.price_with_vat|floatformat:2 }} лв.</td>
+                                        <td>{{ item.total_price|floatformat:2 }} лв.</td>
+                                        <td>{{ item.total_price_with_vat|floatformat:2 }} лв.</td>
+                                        <td>
+                                            {% if item.is_labor %}
+                                                <span class="badge bg-info">Труд</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Част</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-info">
+                                        <td colspan="7" class="text-end"><strong>Общо без ДДС:</strong></td>
+                                        <td><strong>{{ order.total_without_vat|floatformat:2 }} лв.</strong></td>
+                                        <td><strong>{{ order.total_without_vat|floatformat:2 }} лв.</strong></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr class="table-info">
+                                        <td colspan="7" class="text-end"><strong>ДДС 20%:</strong></td>
+                                        <td><strong>{{ order.total_vat|floatformat:2 }} лв.</strong></td>
+                                        <td><strong>{{ order.total_vat|floatformat:2 }} лв.</strong></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td colspan="7" class="text-end"><strong>Общо с ДДС:</strong></td>
+                                        <td><strong>{{ order.total_with_vat|floatformat:2 }} лв.</strong></td>
+                                        <td><strong>{{ order.total_with_vat|floatformat:2 }} лв.</strong></td>
+                                        <td></td>
+                                    </tr>
+                                    {% if order.labor_total > 0 %}
+                                    <tr class="table-warning">
+                                        <td colspan="7" class="text-end"><strong>В т.ч. труд:</strong></td>
+                                        <td><strong>{{ order.labor_total|floatformat:2 }} лв.</strong></td>
+                                        <td><strong>{{ order.labor_total|floatformat:2 }} лв.</strong></td>
+                                        <td></td>
+                                    </tr>
+                                    {% endif %}
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-list fa-2x text-muted mb-3"></i>
+                            <h5 class="text-muted">Няма добавени артикули</h5>
+                            <p class="text-muted">Добавете артикули и услуги към поръчката.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Notes -->
+            {% if order.notes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Бележки</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ order.notes|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
