@@ -37,8 +37,8 @@ docker-compose -f production-docker-compose.yml exec -T db psql -U car_service_u
 
 ## 🌐 Access Your Application
 
-- **URL**: http://188.245.117.191:8030
-- **Admin**: http://188.245.117.191:8030/admin/
+- **URL**: http://188.245.117.191:8031
+- **Admin**: http://188.245.117.191:8031/admin/
 
 ## 🔧 Configuration
 
@@ -109,4 +109,4 @@ docker system prune -f
 
 ---
 
-**Port Configuration**: The application runs on port **8030** to avoid conflicts with your existing services (Car Hunter: 8000, Mantos: 8010, Pool Reservation: 8020).
+**Port Configuration**: The application runs on port **8031** to avoid conflicts with your existing services (Car Hunter: 8000, Mantos: 8010, Pool Reservation: 8020, Other Service: 8030).

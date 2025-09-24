@@ -132,8 +132,8 @@ docker-compose -f production-docker-compose.yml exec -T db psql -U car_service_u
 ## 📱 Access the Application
 
 After deployment, access your application at:
-- **URL**: http://188.245.117.191:8030
-- **Admin**: http://188.245.117.191:8030/admin/
+- **URL**: http://188.245.117.191:8031
+- **Admin**: http://188.245.117.191:8031/admin/
 
 ## 🆘 Troubleshooting
 
@@ -165,7 +165,7 @@ docker system prune -f
 
 ### Health Check
 ```bash
-curl http://188.245.117.191:8030/health/
+curl http://188.245.117.191:8031/health/
 ```
 
 ### Resource Usage
