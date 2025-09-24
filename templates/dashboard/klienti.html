@@ -6,17 +6,81 @@
     <title>Клиенти - Автосервиз</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .cars-display {
+            max-width: 200px;
+        }
+        .car-item {
+            display: inline-block;
+            margin-right: 2px;
+            margin-bottom: 2px;
+        }
+        .car-item .badge {
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .car-item .badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .cars-display .text-muted {
+            font-size: 0.7rem;
+            display: block;
+            margin-top: 2px;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
+        <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'dashboard' %}">
                 <i class="fas fa-wrench me-2"></i>Автосервиз
             </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{% url 'dashboard' %}">
-                    <i class="fas fa-home me-1"></i>Начало
-                </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Главно табло
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'klienti' %}">
+                            <i class="fas fa-users me-1"></i>Клиенти
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'fakturi' %}">
+                            <i class="fas fa-file-invoice me-1"></i>Фактури
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'poruchki' %}">
+                            <i class="fas fa-clipboard-list me-1"></i>Поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'pregled_poruchki' %}">
+                            <i class="fas fa-eye me-1"></i>Преглед на поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'slujiteli' %}">
+                            <i class="fas fa-user-tie me-1"></i>Служители
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'sklad' %}">
+                            <i class="fas fa-warehouse me-1"></i>Склад
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -29,9 +93,9 @@
                 <p class="text-muted">Управление на клиенти и доставчици</p>
             </div>
             <div class="col-md-4 text-end">
-                <a href="{% url 'customer_create' %}" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i>Нов клиент
-                </a>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createCustomerModal">
+                    <i class="fas fa-plus me-1"></i>Създай клиент
+                </button>
             </div>
         </div>
 
@@ -71,33 +135,47 @@
             </div>
         </div>
 
-        <!-- Search and filters -->
+        <!-- Modern AJAX Search and filters -->
         <div class="card mb-4">
             <div class="card-body">
-                <form method="get" class="row g-3">
-                    <div class="col-md-6">
-                        {{ search_form.search }}
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label for="searchInput" class="form-label">
+                            <i class="fas fa-search me-1"></i>Търси по име, номер на кола или VIN
+                        </label>
+                        <input type="text" id="searchInput" name="search" class="form-control" 
+                               placeholder="Въведете име, номер на кола или VIN..." 
+                               value="{{ request.GET.search|default:'' }}">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            VIN търсенето се активира при 5+ символа
+                        </small>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="customerTypeFilter" class="form-label">Тип клиент</label>
+                        <select id="customerTypeFilter" name="customer_type" class="form-select">
+                            <option value="">Всички типове</option>
+                            <option value="individual" {% if request.GET.customer_type == 'individual' %}selected{% endif %}>Частно лице</option>
+                            <option value="company" {% if request.GET.customer_type == 'company' %}selected{% endif %}>Фирма</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
-                        {{ search_form.customer_type }}
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-check">
-                            {{ search_form.active_only }}
-                            <label class="form-check-label" for="{{ search_form.active_only.id_for_label }}">
-                                {{ search_form.active_only.label }}
+                        <div class="form-check mt-4">
+                            <input type="checkbox" id="activeOnlyFilter" name="active_only" class="form-check-input" 
+                                   {% if request.GET.active_only %}checked{% endif %}>
+                            <label class="form-check-label" for="activeOnlyFilter">
+                                Само активни клиенти
                             </label>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search me-1"></i>Търси
-                        </button>
-                        <a href="{% url 'klienti' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>Изчисти
-                        </a>
+                        <div class="mt-4">
+                            <a href="{% url 'klienti' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Изчисти
+                            </a>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
 
@@ -107,107 +185,532 @@
                 <h5 class="mb-0">Списък с клиенти</h5>
             </div>
             <div class="card-body p-0">
-                {% if customers %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Номер</th>
-                                    <th>Име</th>
-                                    <th>Адрес</th>
-                                    <th>Телефон</th>
-                                    <th>БУЛСТАТ</th>
-                                    <th>Статус</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for customer in customers %}
-                                <tr>
-                                    <td><strong>{{ customer.id }}</strong></td>
-                                    <td>
-                                        <a href="{% url 'customer_detail' customer.pk %}" class="text-decoration-none">
-                                            {{ customer.customer_name }}
-                                        </a>
-                                    </td>
-                                    <td>{{ customer.full_address|truncatechars:30 }}</td>
-                                    <td>{{ customer.telno|default:"-" }}</td>
-                                    <td>{{ customer.customer_bulstat|default:"-" }}</td>
-                                    <td>
-                                        {% if customer.active %}
-                                            <span class="badge bg-success">Активен</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Неактивен</span>
-                                        {% endif %}
-                                        {% if customer.supplier %}
-                                            <span class="badge bg-warning">Доставчик</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-outline-info" title="Преглед">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-outline-warning" title="Редактирай">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="{% url 'customer_delete' customer.pk %}" class="btn btn-outline-danger" title="Изтрий">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Номер</th>
+                                <th>Име</th>
+                                <th>Адрес</th>
+                                <th>Телефон</th>
+                                <th>Коли</th>
+                                <th>Тип клиент</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerTableBody">
+                            {% include 'dashboard/customer_table.html' %}
+                        </tbody>
+                    </table>
+                </div>
                     
-                    <!-- Pagination -->
-                    {% if customers.has_other_pages %}
-                    <div class="card-footer">
-                        <nav aria-label="Customer pagination">
-                            <ul class="pagination pagination-sm justify-content-center mb-0">
-                                {% if customers.has_previous %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.customer_type %}&customer_type={{ request.GET.customer_type }}{% endif %}">Първа</a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ customers.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.customer_type %}&customer_type={{ request.GET.customer_type }}{% endif %}">Предишна</a>
-                                    </li>
-                                {% endif %}
-                                
-                                <li class="page-item active">
-                                    <span class="page-link">
-                                        Страница {{ customers.number }} от {{ customers.paginator.num_pages }}
-                                    </span>
-                                </li>
-                                
-                                {% if customers.has_next %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ customers.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.customer_type %}&customer_type={{ request.GET.customer_type }}{% endif %}">Следваща</a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ customers.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.active_only %}&active_only=on{% endif %}{% if request.GET.customer_type %}&customer_type={{ request.GET.customer_type }}{% endif %}">Последна</a>
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
+                <!-- Pagination -->
+                <div class="card-footer" id="paginationContainer">
+                    {% include 'dashboard/customer_pagination.html' %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Customer Modal -->
+    <div class="modal fade" id="createCustomerModal" tabindex="-1" aria-labelledby="createCustomerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createCustomerModalLabel">
+                        <i class="fas fa-plus me-2"></i>Създай нов клиент
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Customer Type Selection -->
+                    <div class="row mb-4" id="customerTypeSelection">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">Изберете тип клиент</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 customer-type-card" data-type="individual" style="cursor: pointer;">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user fa-3x text-success mb-3"></i>
+                                    <h5 class="card-title">Частно лице</h5>
+                                    <p class="card-text text-muted">За физически лица</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 customer-type-card" data-type="company" style="cursor: pointer;">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-building fa-3x text-primary mb-3"></i>
+                                    <h5 class="card-title">Фирма</h5>
+                                    <p class="card-text text-muted">За юридически лица</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
-                {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                        <h5>Няма намерени клиенти</h5>
-                        <p class="text-muted">Опитайте с различни критерии за търсене</p>
-                        <a href="{% url 'customer_create' %}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i>Добави първия клиент
-                        </a>
+
+                    <!-- Individual Customer Form -->
+                    <div id="individualForm" class="customer-form" style="display: none;">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Бързо създаване:</strong> Можете да добавите основна информация за колата или да я добавите по-късно.
+                        </div>
+                        <form id="individualCustomerForm" method="post" action="{% url 'customer_create' %}?type=individual">
+                            {% csrf_token %}
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Основна информация</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Номер</label>
+                                    <input type="number" name="number" class="form-control" readonly placeholder="Автоматично генериран">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Име на клиент <span class="text-danger">*</span></label>
+                                    <input type="text" name="customer_name" class="form-control" required placeholder="Въведете име на клиента">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Адресна информация</h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Адрес</label>
+                                    <input type="text" name="customer_address_1" class="form-control" placeholder="Адрес">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Контактна информация</h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Телефон</label>
+                                    <input type="text" name="telno" class="form-control" placeholder="Телефонен номер">
+                                </div>
+                            </div>
+                            
+                            <!-- Car Information -->
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">
+                                        <i class="fas fa-car me-2"></i>Кола (по избор)
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Марка и модел</label>
+                                    <input type="text" name="cars-0-brand_model" class="form-control" placeholder="Например: BMW X5">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">VIN/Шаси номер</label>
+                                    <input type="text" name="cars-0-vin" class="form-control" placeholder="VIN номер">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Регистрационен номер</label>
+                                    <input type="text" name="cars-0-plate_number" class="form-control" placeholder="CA1234AB">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Година</label>
+                                    <input type="number" name="cars-0-year" class="form-control" placeholder="2020" min="1900" max="2030">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Цвят</label>
+                                    <input type="text" name="cars-0-color" class="form-control" placeholder="Бял">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Номер на двигател</label>
+                                    <input type="text" name="cars-0-engine_number" class="form-control" placeholder="Номер на двигател">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="cars-0-is_active" class="form-check-input" checked>
+                                        <label class="form-check-label">Активна</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden fields for formset -->
+                            <input type="hidden" name="cars-TOTAL_FORMS" value="1">
+                            <input type="hidden" name="cars-INITIAL_FORMS" value="0">
+                            <input type="hidden" name="cars-MIN_NUM_FORMS" value="0">
+                            <input type="hidden" name="cars-MAX_NUM_FORMS" value="1000">
+                        </form>
                     </div>
-                {% endif %}
+
+                    <!-- Company Customer Form -->
+                    <div id="companyForm" class="customer-form" style="display: none;">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Бързо създаване:</strong> Можете да добавите основна информация за колата или да я добавите по-късно.
+                        </div>
+                        <form id="companyCustomerForm" method="post" action="{% url 'customer_create' %}?type=company">
+                            {% csrf_token %}
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Основна информация</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Номер</label>
+                                    <input type="number" name="number" class="form-control" readonly placeholder="Автоматично генериран">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Име на Контрагент <span class="text-danger">*</span></label>
+                                    <input type="text" name="customer_name" class="form-control" required placeholder="Въведете име на контрагента">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Адресна информация</h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Адрес</label>
+                                    <input type="text" name="customer_address_1" class="form-control" placeholder="Адрес">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Бизнес информация</h6>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">БУЛСТАТ</label>
+                                    <input type="text" name="customer_bulstat" class="form-control" placeholder="БУЛСТАТ номер (9-11 цифри)" pattern="\d{9,11}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">ИН по ЗДДС</label>
+                                    <input type="text" name="customer_taxno" class="form-control" placeholder="ИН по ЗДДС">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">МОЛ</label>
+                                    <input type="text" name="customer_mol" class="form-control" placeholder="МОЛ (Молимо отговорно лице)">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">Контактна информация</h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Телефон</label>
+                                    <input type="text" name="telno" class="form-control" placeholder="Телефонен номер">
+                                </div>
+                            </div>
+                            
+                            <!-- Car Information -->
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2">
+                                        <i class="fas fa-car me-2"></i>Кола (по избор)
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Марка и модел</label>
+                                    <input type="text" name="cars-0-brand_model" class="form-control" placeholder="Например: BMW X5">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">VIN/Шаси номер</label>
+                                    <input type="text" name="cars-0-vin" class="form-control" placeholder="VIN номер">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Регистрационен номер</label>
+                                    <input type="text" name="cars-0-plate_number" class="form-control" placeholder="CA1234AB">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Година</label>
+                                    <input type="number" name="cars-0-year" class="form-control" placeholder="2020" min="1900" max="2030">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Цвят</label>
+                                    <input type="text" name="cars-0-color" class="form-control" placeholder="Бял">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Номер на двигател</label>
+                                    <input type="text" name="cars-0-engine_number" class="form-control" placeholder="Номер на двигател">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="cars-0-is_active" class="form-check-input" checked>
+                                        <label class="form-check-label">Активна</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden fields for formset -->
+                            <input type="hidden" name="cars-TOTAL_FORMS" value="1">
+                            <input type="hidden" name="cars-INITIAL_FORMS" value="0">
+                            <input type="hidden" name="cars-MIN_NUM_FORMS" value="0">
+                            <input type="hidden" name="cars-MAX_NUM_FORMS" value="1000">
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Отказ
+                    </button>
+                    <button type="button" class="btn btn-success" id="submitCustomerForm" style="display: none;">
+                        <i class="fas fa-save me-1"></i>Създай клиент
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('createCustomerModal');
+            const customerTypeCards = document.querySelectorAll('.customer-type-card');
+            const individualForm = document.getElementById('individualForm');
+            const companyForm = document.getElementById('companyForm');
+            const submitBtn = document.getElementById('submitCustomerForm');
+            const customerTypeSelection = document.getElementById('customerTypeSelection');
+            
+            let selectedType = null;
+
+            // Handle customer type selection
+            customerTypeCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    // Remove active class from all cards
+                    customerTypeCards.forEach(c => c.classList.remove('border-primary', 'bg-light'));
+                    
+                    // Add active class to selected card
+                    this.classList.add('border-primary', 'bg-light');
+                    
+                    selectedType = this.dataset.type;
+                    
+                    // Generate customer number
+                    generateCustomerNumber();
+                    
+                    // Show appropriate form
+                    if (selectedType === 'individual') {
+                        individualForm.style.display = 'block';
+                        companyForm.style.display = 'none';
+                    } else if (selectedType === 'company') {
+                        individualForm.style.display = 'none';
+                        companyForm.style.display = 'block';
+                    }
+                    
+                    // Show submit button
+                    submitBtn.style.display = 'inline-block';
+                });
+            });
+
+            // Function to generate customer number
+            function generateCustomerNumber() {
+                // Make AJAX request to get next customer number
+                fetch('/klienti/get-next-number/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Set the number in both forms
+                            const individualNumberField = individualForm.querySelector('input[type="number"]');
+                            const companyNumberField = companyForm.querySelector('input[type="number"]');
+                            
+                            if (individualNumberField) {
+                                individualNumberField.value = data.next_number;
+                            }
+                            if (companyNumberField) {
+                                companyNumberField.value = data.next_number;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error generating customer number:', error);
+                        // Fallback: set a default number
+                        const individualNumberField = individualForm.querySelector('input[type="number"]');
+                        const companyNumberField = companyForm.querySelector('input[type="number"]');
+                        
+                        if (individualNumberField) {
+                            individualNumberField.value = 1;
+                        }
+                        if (companyNumberField) {
+                            companyNumberField.value = 1;
+                        }
+                    });
+            }
+
+            // Handle form submission
+            submitBtn.addEventListener('click', function() {
+                if (selectedType === 'individual') {
+                    document.getElementById('individualCustomerForm').submit();
+                } else if (selectedType === 'company') {
+                    document.getElementById('companyCustomerForm').submit();
+                }
+            });
+
+            // Reset modal when closed
+            modal.addEventListener('hidden.bs.modal', function() {
+                customerTypeCards.forEach(c => c.classList.remove('border-primary', 'bg-light'));
+                individualForm.style.display = 'none';
+                companyForm.style.display = 'none';
+                submitBtn.style.display = 'none';
+                selectedType = null;
+                
+                // Clear car form fields
+                clearCarFields();
+            });
+
+            // Function to clear car fields
+            function clearCarFields() {
+                const carFields = document.querySelectorAll('input[name^="cars-0-"]');
+                carFields.forEach(field => {
+                    if (field.type === 'checkbox') {
+                        field.checked = true;
+                    } else {
+                        field.value = '';
+                    }
+                });
+            }
+        });
+
+        // Initialize tooltips function
+        function initializeTooltips() {
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        // Modern AJAX search functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips on page load
+            initializeTooltips();
+            const searchInput = document.getElementById('searchInput');
+            const customerTypeFilter = document.getElementById('customerTypeFilter');
+            const activeOnlyFilter = document.getElementById('activeOnlyFilter');
+            const resultsContainer = document.getElementById('customerTableBody');
+            const paginationContainer = document.getElementById('paginationContainer');
+            const statsCards = document.querySelectorAll('.card.bg-primary, .card.bg-success, .card.bg-warning, .card.bg-info');
+            
+            let searchTimeout;
+            let currentPage = 1;
+            
+            function updateResults(data) {
+                // Update table body
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = data.table_html || '';
+                }
+                
+                // Update pagination
+                if (paginationContainer) {
+                    paginationContainer.innerHTML = data.pagination_html || '';
+                }
+                
+                // Update statistics cards
+                if (data.stats) {
+                    updateStatsCards(data.stats);
+                }
+                
+                // Initialize tooltips for car badges
+                initializeTooltips();
+            }
+            
+            
+            function updateStatsCards(stats) {
+                const cards = document.querySelectorAll('.card.bg-primary, .card.bg-success, .card.bg-warning, .card.bg-info');
+                if (cards.length >= 4) {
+                    // Total customers
+                    if (cards[0]) {
+                        const h3 = cards[0].querySelector('h3');
+                        if (h3) h3.textContent = stats.total_customers || 0;
+                    }
+                    // Active customers
+                    if (cards[1]) {
+                        const h3 = cards[1].querySelector('h3');
+                        if (h3) h3.textContent = stats.active_customers || 0;
+                    }
+                    // Company customers
+                    if (cards[2]) {
+                        const h3 = cards[2].querySelector('h3');
+                        if (h3) h3.textContent = stats.company_customers || 0;
+                    }
+                    // Individual customers
+                    if (cards[3]) {
+                        const h3 = cards[3].querySelector('h3');
+                        if (h3) h3.textContent = stats.individual_customers || 0;
+                    }
+                }
+            }
+            
+            function performSearch() {
+                const searchQuery = searchInput ? searchInput.value.trim() : '';
+                const customerTypeValue = customerTypeFilter ? customerTypeFilter.value : '';
+                const activeOnly = activeOnlyFilter ? activeOnlyFilter.checked : false;
+                
+                // Build query parameters
+                const params = new URLSearchParams();
+                if (searchQuery) params.append('search', searchQuery);
+                if (customerTypeValue) params.append('customer_type', customerTypeValue);
+                if (activeOnly) params.append('active_only', 'on');
+                params.append('page', currentPage);
+                
+                fetch(`/klienti/search-ajax/?${params.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateResults(data);
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    // Fallback to page reload
+                    window.location.href = `/klienti/?${params.toString()}`;
+                });
+            }
+            
+            // Search input with debouncing
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(function() {
+                        currentPage = 1; // Reset to first page on new search
+                        performSearch();
+                    }, 300);
+                });
+                
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(searchTimeout);
+                        currentPage = 1;
+                        performSearch();
+                    }
+                });
+            }
+            
+            // Filter changes
+            if (customerTypeFilter) {
+                customerTypeFilter.addEventListener('change', function() {
+                    currentPage = 1;
+                    performSearch();
+                });
+            }
+            
+            if (activeOnlyFilter) {
+                activeOnlyFilter.addEventListener('change', function() {
+                    currentPage = 1;
+                    performSearch();
+                });
+            }
+            
+            // Pagination click handling
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('page-link') && e.target.getAttribute('href')) {
+                    e.preventDefault();
+                    const url = new URL(e.target.getAttribute('href'), window.location.origin);
+                    const page = url.searchParams.get('page');
+                    if (page) {
+                        currentPage = parseInt(page);
+                        performSearch();
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

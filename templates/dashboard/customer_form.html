@@ -46,225 +46,147 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Информация за клиента</h5>
+                        <h5 class="mb-0">
+                            {% if customer_type == 'company' %}
+                                <i class="fas fa-building me-2"></i>Информация за фирма
+                            {% else %}
+                                <i class="fas fa-user me-2"></i>Информация за частно лице
+                            {% endif %}
+                        </h5>
                     </div>
                     <div class="card-body">
                         <form method="post">
                             {% csrf_token %}
                             
-                            <!-- Basic Information -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary border-bottom pb-2">Основна информация</h6>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="{{ form.number.id_for_label }}" class="form-label">{{ form.number.label }}</label>
-                                    {{ form.number }}
-                                    {% if form.number.errors %}
-                                        <div class="text-danger small">{{ form.number.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-9">
-                                    <label for="{{ form.customer_name.id_for_label }}" class="form-label">{{ form.customer_name.label }} <span class="text-danger">*</span></label>
-                                    {{ form.customer_name }}
-                                    {% if form.customer_name.errors %}
-                                        <div class="text-danger small">{{ form.customer_name.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Address Information -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary border-bottom pb-2">Адресна информация</h6>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="{{ form.customer_address_1.id_for_label }}" class="form-label">{{ form.customer_address_1.label }}</label>
-                                    {{ form.customer_address_1 }}
-                                    {% if form.customer_address_1.errors %}
-                                        <div class="text-danger small">{{ form.customer_address_1.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="{{ form.customer_address_2.id_for_label }}" class="form-label">{{ form.customer_address_2.label }}</label>
-                                    {{ form.customer_address_2 }}
-                                    {% if form.customer_address_2.errors %}
-                                        <div class="text-danger small">{{ form.customer_address_2.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mt-3">
-                                    <label for="{{ form.res_address_1.id_for_label }}" class="form-label">{{ form.res_address_1.label }}</label>
-                                    {{ form.res_address_1 }}
-                                    {% if form.res_address_1.errors %}
-                                        <div class="text-danger small">{{ form.res_address_1.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mt-3">
-                                    <label for="{{ form.res_address_2.id_for_label }}" class="form-label">{{ form.res_address_2.label }}</label>
-                                    {{ form.res_address_2 }}
-                                    {% if form.res_address_2.errors %}
-                                        <div class="text-danger small">{{ form.res_address_2.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Contact Information -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary border-bottom pb-2">Контактна информация</h6>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="{{ form.telno.id_for_label }}" class="form-label">{{ form.telno.label }}</label>
-                                    {{ form.telno }}
-                                    {% if form.telno.errors %}
-                                        <div class="text-danger small">{{ form.telno.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="{{ form.faxno.id_for_label }}" class="form-label">{{ form.faxno.label }}</label>
-                                    {{ form.faxno }}
-                                    {% if form.faxno.errors %}
-                                        <div class="text-danger small">{{ form.faxno.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
-                                    {{ form.email }}
-                                    {% if form.email.errors %}
-                                        <div class="text-danger small">{{ form.email.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Business Information -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary border-bottom pb-2">Бизнес информация</h6>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="{{ form.customer_mol.id_for_label }}" class="form-label">{{ form.customer_mol.label }}</label>
-                                    {{ form.customer_mol }}
-                                    {% if form.customer_mol.errors %}
-                                        <div class="text-danger small">{{ form.customer_mol.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="{{ form.customer_taxno.id_for_label }}" class="form-label">{{ form.customer_taxno.label }}</label>
-                                    {{ form.customer_taxno }}
-                                    {% if form.customer_taxno.errors %}
-                                        <div class="text-danger small">{{ form.customer_taxno.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="{{ form.customer_bulstat.id_for_label }}" class="form-label">{{ form.customer_bulstat.label }}</label>
-                                    {{ form.customer_bulstat }}
-                                    {% if form.customer_bulstat.errors %}
-                                        <div class="text-danger small">{{ form.customer_bulstat.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="{{ form.customer_doctype.id_for_label }}" class="form-label">{{ form.customer_doctype.label }}</label>
-                                    {{ form.customer_doctype }}
-                                    {% if form.customer_doctype.errors %}
-                                        <div class="text-danger small">{{ form.customer_doctype.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Receiver Information -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary border-bottom pb-2">Информация за получател</h6>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="{{ form.receiver.id_for_label }}" class="form-label">{{ form.receiver.label }}</label>
-                                    {{ form.receiver }}
-                                    {% if form.receiver.errors %}
-                                        <div class="text-danger small">{{ form.receiver.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="{{ form.receiver_details.id_for_label }}" class="form-label">{{ form.receiver_details.label }}</label>
-                                    {{ form.receiver_details }}
-                                    {% if form.receiver_details.errors %}
-                                        <div class="text-danger small">{{ form.receiver_details.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Status and Settings -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary border-bottom pb-2">Статус и настройки</h6>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-check">
-                                        {{ form.active }}
-                                        <label class="form-check-label" for="{{ form.active.id_for_label }}">
-                                            {{ form.active.label }}
-                                        </label>
+                            {% if customer_type == 'company' %}
+                                <!-- Company Form Fields -->
+                                <!-- Basic Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2">Основна информация</h6>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="{{ form.number.id_for_label }}" class="form-label">{{ form.number.label }}</label>
+                                        {{ form.number }}
+                                        {% if form.number.errors %}
+                                            <div class="text-danger small">{{ form.number.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label for="{{ form.customer_name.id_for_label }}" class="form-label">{{ form.customer_name.label }} <span class="text-danger">*</span></label>
+                                        {{ form.customer_name }}
+                                        {% if form.customer_name.errors %}
+                                            <div class="text-danger small">{{ form.customer_name.errors.0 }}</div>
+                                        {% endif %}
                                     </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="form-check">
-                                        {{ form.customer }}
-                                        <label class="form-check-label" for="{{ form.customer.id_for_label }}">
-                                            {{ form.customer.label }}
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-check">
-                                        {{ form.supplier }}
-                                        <label class="form-check-label" for="{{ form.supplier.id_for_label }}">
-                                            {{ form.supplier.label }}
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-check">
-                                        {{ form.include }}
-                                        <label class="form-check-label" for="{{ form.include.id_for_label }}">
-                                            {{ form.include.label }}
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <!-- Additional Information -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary border-bottom pb-2">Допълнителна информация</h6>
+                                <!-- Address Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2">Адресна информация</h6>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label for="{{ form.customer_address_1.id_for_label }}" class="form-label">Адрес</label>
+                                        {{ form.customer_address_1 }}
+                                        {% if form.customer_address_1.errors %}
+                                            <div class="text-danger small">{{ form.customer_address_1.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="{{ form.contact.id_for_label }}" class="form-label">{{ form.contact.label }}</label>
-                                    {{ form.contact }}
-                                    {% if form.contact.errors %}
-                                        <div class="text-danger small">{{ form.contact.errors.0 }}</div>
-                                    {% endif %}
+
+                                <!-- Business Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2">Бизнес информация</h6>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.customer_bulstat.id_for_label }}" class="form-label">БУЛСТАТ</label>
+                                        {{ form.customer_bulstat }}
+                                        {% if form.customer_bulstat.errors %}
+                                            <div class="text-danger small">{{ form.customer_bulstat.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.customer_taxno.id_for_label }}" class="form-label">ИН по ЗДДС</label>
+                                        {{ form.customer_taxno }}
+                                        {% if form.customer_taxno.errors %}
+                                            <div class="text-danger small">{{ form.customer_taxno.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.customer_mol.id_for_label }}" class="form-label">МОЛ</label>
+                                        {{ form.customer_mol }}
+                                        {% if form.customer_mol.errors %}
+                                            <div class="text-danger small">{{ form.customer_mol.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="{{ form.partida.id_for_label }}" class="form-label">{{ form.partida.label }}</label>
-                                    {{ form.partida }}
-                                    {% if form.partida.errors %}
-                                        <div class="text-danger small">{{ form.partida.errors.0 }}</div>
-                                    {% endif %}
+
+                                <!-- Contact Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2">Контактна информация</h6>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label for="{{ form.telno.id_for_label }}" class="form-label">Телефон</label>
+                                        {{ form.telno }}
+                                        {% if form.telno.errors %}
+                                            <div class="text-danger small">{{ form.telno.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="{{ form.bulstatletter.id_for_label }}" class="form-label">{{ form.bulstatletter.label }}</label>
-                                    {{ form.bulstatletter }}
-                                    {% if form.bulstatletter.errors %}
-                                        <div class="text-danger small">{{ form.bulstatletter.errors.0 }}</div>
-                                    {% endif %}
+                            {% else %}
+                                <!-- Individual Form Fields -->
+                                <!-- Basic Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2">Основна информация</h6>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="{{ form.number.id_for_label }}" class="form-label">{{ form.number.label }}</label>
+                                        {{ form.number }}
+                                        {% if form.number.errors %}
+                                            <div class="text-danger small">{{ form.number.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label for="{{ form.customer_name.id_for_label }}" class="form-label">{{ form.customer_name.label }} <span class="text-danger">*</span></label>
+                                        {{ form.customer_name }}
+                                        {% if form.customer_name.errors %}
+                                            <div class="text-danger small">{{ form.customer_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mt-3">
-                                    <label for="{{ form.eidate.id_for_label }}" class="form-label">{{ form.eidate.label }}</label>
-                                    {{ form.eidate }}
-                                    {% if form.eidate.errors %}
-                                        <div class="text-danger small">{{ form.eidate.errors.0 }}</div>
-                                    {% endif %}
+
+                                <!-- Address Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2">Адресна информация</h6>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label for="{{ form.customer_address_1.id_for_label }}" class="form-label">Адрес</label>
+                                        {{ form.customer_address_1 }}
+                                        {% if form.customer_address_1.errors %}
+                                            <div class="text-danger small">{{ form.customer_address_1.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                            </div>
+
+                                <!-- Contact Information -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-primary border-bottom pb-2">Контактна информация</h6>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label for="{{ form.telno.id_for_label }}" class="form-label">Телефон</label>
+                                        {{ form.telno }}
+                                        {% if form.telno.errors %}
+                                            <div class="text-danger small">{{ form.telno.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
 
                             <!-- Cars Section -->
                             <div class="row mt-4">
@@ -378,6 +300,43 @@
             const carFormsContainer = document.getElementById('car-forms');
             const totalFormsInput = document.getElementById('id_cars-TOTAL_FORMS');
             let formCount = parseInt(totalFormsInput.value);
+
+            // Form validation
+            const form = document.querySelector('form');
+            const customerNameField = document.getElementById('id_customer_name');
+            
+            form.addEventListener('submit', function(e) {
+                // Check if customer name is filled
+                if (!customerNameField.value.trim()) {
+                    e.preventDefault();
+                    
+                    // Show error message
+                    showValidationError('Моля, въведете име на клиента/контрагента');
+                    
+                    // Focus on the customer name field
+                    customerNameField.focus();
+                    
+                    return false;
+                }
+            });
+
+            function showValidationError(message) {
+                // Remove existing error alerts
+                const existingAlerts = document.querySelectorAll('.alert-danger');
+                existingAlerts.forEach(alert => alert.remove());
+                
+                // Create new error alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                // Insert after the messages section
+                const messagesSection = document.querySelector('.container .row .col-12');
+                messagesSection.insertBefore(alertDiv, messagesSection.children[1]);
+            }
 
             addCarBtn.addEventListener('click', function() {
                 const newForm = document.createElement('div');

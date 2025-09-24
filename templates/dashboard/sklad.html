@@ -457,8 +457,7 @@
                         </div>
 
                         <div id="importResults" class="d-none">
-                            <div class="alert alert-success">
-                                <h6><i class="fas fa-check-circle me-2"></i>Импортът завърши успешно!</h6>
+                            <div id="importAlert">
                                 <div id="importStats"></div>
                             </div>
                         </div>
@@ -536,7 +535,9 @@
                     importResults.classList.remove('d-none');
                     
                     if (data.success) {
+                        document.getElementById('importAlert').className = 'alert alert-success';
                         document.getElementById('importStats').innerHTML = `
+                            <h6><i class="fas fa-check-circle me-2"></i>Импортът завърши успешно!</h6>
                             <p class="mb-1"><strong>Създадени:</strong> ${data.created || 0}</p>
                             <p class="mb-1"><strong>Обновени:</strong> ${data.updated || 0}</p>
                             <p class="mb-1"><strong>Грешки:</strong> ${data.errors || 0}</p>
@@ -553,9 +554,32 @@
                             window.location.reload();
                         }, 2000);
                     } else {
-                        document.getElementById('importStats').innerHTML = `
-                            <p class="mb-0 text-danger"><strong>Грешка:</strong> ${data.error || 'Неизвестна грешка'}</p>
-                        `;
+                        if (data.error === 'duplicate') {
+                            // Handle duplicate import
+                            document.getElementById('importAlert').className = 'alert alert-warning';
+                            const duplicateInfo = data.duplicate_info;
+                            document.getElementById('importStats').innerHTML = `
+                                <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Дублиран импорт</h6>
+                                <p class="mb-2">${data.message}</p>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small><strong>Доставчик:</strong> ${duplicateInfo.provider}</small><br>
+                                        <small><strong>Файл:</strong> ${duplicateInfo.file_name}</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small><strong>Дата на импорт:</strong> ${new Date(duplicateInfo.import_date).toLocaleString('bg-BG')}</small><br>
+                                        ${duplicateInfo.invoice_number ? `<small><strong>Номер на фактура:</strong> ${duplicateInfo.invoice_number}</small>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            document.getElementById('importAlert').className = 'alert alert-danger';
+                            document.getElementById('importStats').innerHTML = `
+                                <h6><i class="fas fa-exclamation-circle me-2"></i>Грешка при импорт</h6>
+                                <p class="mb-0"><strong>Грешка:</strong> ${data.error || 'Неизвестна грешка'}</p>
+                            `;
+                        }
                     }
                 })
                 .catch(error => {

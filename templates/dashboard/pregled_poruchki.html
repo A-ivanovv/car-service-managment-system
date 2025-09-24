@@ -14,17 +14,51 @@
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
+        <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'dashboard' %}">
                 <i class="fas fa-wrench me-2"></i>Автосервиз
             </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{% url 'dashboard' %}">
-                    <i class="fas fa-home me-1"></i>Начало
-                </a>
-                <a class="nav-link" href="{% url 'poruchki' %}">
-                    <i class="fas fa-clipboard-list me-1"></i>Поръчки
-                </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Главно табло
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'klienti' %}">
+                            <i class="fas fa-users me-1"></i>Клиенти
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'fakturi' %}">
+                            <i class="fas fa-file-invoice me-1"></i>Фактури
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'poruchki' %}">
+                            <i class="fas fa-clipboard-list me-1"></i>Поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'pregled_poruchki' %}">
+                            <i class="fas fa-eye me-1"></i>Преглед на поръчки
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'slujiteli' %}">
+                            <i class="fas fa-user-tie me-1"></i>Служители
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'sklad' %}">
+                            <i class="fas fa-warehouse me-1"></i>Склад
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -105,7 +139,7 @@
 
         <!-- Search and Filters -->
         <div class="search-form">
-            <form method="GET" class="row g-3">
+            <form id="orderSearchForm" class="row g-3">
                 <div class="col-md-4">
                     <label for="search" class="form-label">Търсене:</label>
                     <input type="text" class="form-control" id="search" name="search" 
@@ -172,110 +206,16 @@
                                             <th>Действия</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {% for order in orders %}
-                                        <tr class="order-row">
-                                            <td>{{ forloop.counter|add:orders.start_index|add:"-1" }}</td>
-                                            <td><strong>{{ order.order_number }}</strong></td>
-                                            <td>{{ order.order_date|date:"d.m.Y" }}</td>
-                                            <td>
-                                                <div>
-                                                    <strong>{{ order.client_name }}</strong>
-                                                    {% if order.client_phone %}
-                                                        <br><small class="text-muted">{{ order.client_phone }}</small>
-                                                    {% endif %}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    <strong>{{ order.car_brand_model }}</strong>
-                                                    {% if order.car_plate_number %}
-                                                        <br><small class="text-muted">{{ order.car_plate_number }}</small>
-                                                    {% endif %}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {% if order.status == 'offer' %}
-                                                    <span class="badge bg-warning status-badge">{{ order.get_status_display }}</span>
-                                                {% elif order.status == 'invoice' %}
-                                                    <span class="badge bg-success status-badge">{{ order.get_status_display }}</span>
-                                                {% endif %}
-                                            </td>
-                                            <td><strong>{{ order.total_with_vat|floatformat:2 }} лв.</strong></td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm" role="group">
-                                                    {% if order.status == 'offer' %}
-                                                        <!-- For offers: Preview Offer, Generate Invoice -->
-                                                        <button type="button" class="btn btn-outline-info" title="Преглед Оферта" 
-                                                                data-bs-toggle="modal" data-bs-target="#offerModal" 
-                                                                data-order-id="{{ order.pk }}" data-order-number="{{ order.order_number }}">
-                                                            <i class="fas fa-eye me-1"></i>Преглед Оферта
-                                                        </button>
-                                                        <button type="button" class="btn btn-outline-success" title="Генерирай Фактура" 
-                                                                data-bs-toggle="modal" data-bs-target="#invoiceModal" 
-                                                                data-order-id="{{ order.pk }}" data-order-number="{{ order.order_number }}">
-                                                            <i class="fas fa-file-invoice me-1"></i>Генерирай Фактура
-                                                        </button>
-                                                    {% elif order.status == 'invoice' %}
-                                                        <!-- For invoices: Preview Order -->
-                                                        <a href="{% url 'order_detail' order.pk %}" class="btn btn-outline-info" title="Преглед на поръчка">
-                                                            <i class="fas fa-eye me-1"></i>Преглед на поръчка
-                                                        </a>
-                                                    {% endif %}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                                    <tbody id="ordersTableBody">
+                                        {% include 'dashboard/order_table.html' %}
                                     </tbody>
                                 </table>
                             </div>
 
                             <!-- Pagination -->
-                            {% if orders.has_other_pages %}
-                            <div class="card-footer">
-                                <nav aria-label="Page navigation">
-                                    <ul class="pagination pagination-sm justify-content-center mb-0">
-                                        {% if orders.has_previous %}
-                                            <li class="page-item">
-                                                <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page=1">
-                                                    <i class="fas fa-angle-double-left"></i>
-                                                </a>
-                                            </li>
-                                            <li class="page-item">
-                                                <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ orders.previous_page_number }}">
-                                                    <i class="fas fa-angle-left"></i>
-                                                </a>
-                                            </li>
-                                        {% endif %}
-
-                                        {% for num in orders.paginator.page_range %}
-                                            {% if orders.number == num %}
-                                                <li class="page-item active">
-                                                    <span class="page-link">{{ num }}</span>
-                                                </li>
-                                            {% elif num > orders.number|add:'-3' and num < orders.number|add:'3' %}
-                                                <li class="page-item">
-                                                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ num }}">{{ num }}</a>
-                                                </li>
-                                            {% endif %}
-                                        {% endfor %}
-
-                                        {% if orders.has_next %}
-                                            <li class="page-item">
-                                                <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ orders.next_page_number }}">
-                                                    <i class="fas fa-angle-right"></i>
-                                                </a>
-                                            </li>
-                                            <li class="page-item">
-                                                <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ orders.paginator.num_pages }}">
-                                                    <i class="fas fa-angle-double-right"></i>
-                                                </a>
-                                            </li>
-                                        {% endif %}
-                                    </ul>
-                                </nav>
+                            <div class="card-footer" id="ordersPagination">
+                                {% include 'dashboard/order_pagination.html' %}
                             </div>
-                            {% endif %}
 
                         {% else %}
                             <div class="text-center py-5">
@@ -597,6 +537,112 @@
                 location.reload();
             };
         }
+
+        // AJAX Search functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchForm = document.getElementById('orderSearchForm');
+            const searchInput = document.getElementById('search');
+            const statusSelect = document.getElementById('status');
+            const dateFromInput = document.getElementById('date_from');
+            const dateToInput = document.getElementById('date_to');
+            const ordersTableBody = document.getElementById('ordersTableBody');
+            const ordersPagination = document.getElementById('ordersPagination');
+            
+            let searchTimeout;
+            
+            // Search on form submit
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                performSearch();
+            });
+            
+            // Search on input change (with debounce)
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearch();
+                }, 300);
+            });
+            
+            // Search on filter change
+            statusSelect.addEventListener('change', performSearch);
+            dateFromInput.addEventListener('change', performSearch);
+            dateToInput.addEventListener('change', performSearch);
+            
+            function performSearch() {
+                const searchQuery = searchInput.value.trim();
+                const status = statusSelect.value;
+                const dateFrom = dateFromInput.value;
+                const dateTo = dateToInput.value;
+                
+                // Build URL with parameters
+                const params = new URLSearchParams();
+                if (searchQuery) params.append('search', searchQuery);
+                if (status) params.append('status', status);
+                if (dateFrom) params.append('date_from', dateFrom);
+                if (dateTo) params.append('date_to', dateTo);
+                
+                const url = `{% url 'order_search_ajax' %}?${params.toString()}`;
+                
+                // Show loading state
+                ordersTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Търсене...</td></tr>';
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        ordersTableBody.innerHTML = data.table_html;
+                        ordersPagination.innerHTML = data.pagination_html;
+                        
+                        // Update statistics if needed
+                        if (data.stats) {
+                            // You can update statistics here if needed
+                            console.log('Search completed:', data.stats);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        ordersTableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Грешка при търсене</td></tr>';
+                    });
+            }
+            
+            // Handle pagination clicks
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('page-link')) {
+                    e.preventDefault();
+                    const url = new URL(e.target.href);
+                    const page = url.searchParams.get('page');
+                    
+                    if (page) {
+                        const searchQuery = searchInput.value.trim();
+                        const status = statusSelect.value;
+                        const dateFrom = dateFromInput.value;
+                        const dateTo = dateToInput.value;
+                        
+                        const params = new URLSearchParams();
+                        if (searchQuery) params.append('search', searchQuery);
+                        if (status) params.append('status', status);
+                        if (dateFrom) params.append('date_from', dateFrom);
+                        if (dateTo) params.append('date_to', dateTo);
+                        params.append('page', page);
+                        
+                        const ajaxUrl = `{% url 'order_search_ajax' %}?${params.toString()}`;
+                        
+                        ordersTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Зареждане...</td></tr>';
+                        
+                        fetch(ajaxUrl)
+                            .then(response => response.json())
+                            .then(data => {
+                                ordersTableBody.innerHTML = data.table_html;
+                                ordersPagination.innerHTML = data.pagination_html;
+                            })
+                            .catch(error => {
+                                console.error('Pagination error:', error);
+                                ordersTableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+                            });
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>

@@ -1,0 +1,57 @@
+{% for order in orders %}
+<tr class="order-row">
+    <td>{{ forloop.counter|add:orders.start_index|add:"-1" }}</td>
+    <td><strong>{{ order.order_number }}</strong></td>
+    <td>{{ order.order_date|date:"d.m.Y" }}</td>
+    <td>
+        <div>
+            <strong>{{ order.client_name }}</strong>
+            {% if order.client_phone %}
+                <br><small class="text-muted">{{ order.client_phone }}</small>
+            {% endif %}
+        </div>
+    </td>
+    <td>
+        <div>
+            <strong>{{ order.car_brand_model }}</strong>
+            {% if order.car_plate_number %}
+                <br><small class="text-muted">{{ order.car_plate_number }}</small>
+            {% endif %}
+        </div>
+    </td>
+    <td>
+        {% if order.status == 'offer' %}
+            <span class="badge bg-warning status-badge">{{ order.get_status_display }}</span>
+        {% elif order.status == 'invoice' %}
+            <span class="badge bg-success status-badge">{{ order.get_status_display }}</span>
+        {% endif %}
+    </td>
+    <td><strong>{{ order.total_with_vat|floatformat:2 }} лв.</strong></td>
+    <td>
+        <div class="btn-group btn-group-sm" role="group">
+            {% if order.status == 'offer' %}
+                <!-- For offers: Preview Offer, Generate Invoice -->
+                <button type="button" class="btn btn-outline-info" title="Преглед Оферта" 
+                        data-bs-toggle="modal" data-bs-target="#offerModal" 
+                        data-order-id="{{ order.pk }}" data-order-number="{{ order.order_number }}">
+                    <i class="fas fa-eye me-1"></i>Преглед Оферта
+                </button>
+                <button type="button" class="btn btn-outline-success" title="Генерирай Фактура" 
+                        data-bs-toggle="modal" data-bs-target="#invoiceModal" 
+                        data-order-id="{{ order.pk }}" data-order-number="{{ order.order_number }}">
+                    <i class="fas fa-file-invoice me-1"></i>Генерирай Фактура
+                </button>
+            {% elif order.status == 'invoice' %}
+                <!-- For invoices: Preview Order -->
+                <a href="{% url 'order_detail' order.pk %}" class="btn btn-outline-info" title="Преглед на поръчка">
+                    <i class="fas fa-eye me-1"></i>Преглед на поръчка
+                </a>
+            {% endif %}
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="8" class="text-center text-muted py-4">Няма намерени поръчки.</td>
+</tr>
+{% endfor %}

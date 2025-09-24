@@ -4,16 +4,91 @@ from django.forms import inlineformset_factory
 from .models import Customer, Car, Employee, DaysOff, Sklad, Order, OrderItem
 
 class CustomerForm(forms.ModelForm):
-    """Form for creating and editing customers"""
+    """Form for creating and editing customers with simplified fields"""
     
     class Meta:
         model = Customer
         fields = [
-            'number', 'customer_name', 'customer_address_1', 'customer_address_2',
-            'customer_mol', 'customer_taxno', 'customer_doctype', 'receiver',
-            'receiver_details', 'customer_bulstat', 'telno', 'faxno', 'email',
-            'res_address_1', 'res_address_2', 'eidate', 'include', 'active',
-            'customer', 'supplier', 'contact', 'partida', 'bulstatletter'
+            'number', 'customer_name', 'customer_address_1',
+            'customer_mol', 'customer_taxno', 'customer_bulstat', 'telno'
+        ]
+    
+        widgets = {
+            'number': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Автоматично генериран',
+                'readonly': True
+            }),
+            'customer_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Въведете име на клиента/контрагента'
+            }),
+            'customer_address_1': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Адрес'
+            }),
+            'customer_mol': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'МОЛ (Молимо отговорно лице)'
+            }),
+            'customer_taxno': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'ИН по ЗДДС'
+            }),
+            'customer_bulstat': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'БУЛСТАТ номер (9-11 цифри)',
+                'pattern': r'\d{9,11}'
+            }),
+            'telno': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Телефонен номер'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['customer_name'].required = True
+        # Remove HTML5 required attribute to avoid tab focus issues
+        # We'll handle validation with JavaScript and server-side
+        self.fields['customer_name'].widget.attrs.pop('required', None)
+        
+        # Auto-generate customer number for new customers
+        if not self.instance.pk:  # Only for new customers
+            last_customer = Customer.objects.order_by('-number').first()
+            if last_customer:
+                next_number = last_customer.number + 1
+            else:
+                next_number = 1
+            self.fields['number'].initial = next_number
+    
+        # Set field labels
+        self.fields['number'].label = 'Номер'
+        self.fields['customer_name'].label = 'Име на клиент'
+        self.fields['customer_address_1'].label = 'Адрес'
+        self.fields['customer_mol'].label = 'МОЛ'
+        self.fields['customer_taxno'].label = 'ИН по ЗДДС'
+        self.fields['customer_bulstat'].label = 'БУЛСТАТ'
+        self.fields['telno'].label = 'Телефон'
+    
+    def clean_customer_bulstat(self):
+        """Validate BULSTAT format"""
+        bulstat = self.cleaned_data.get('customer_bulstat')
+        if bulstat and not bulstat.isdigit():
+            raise ValidationError('БУЛСТАТ трябва да съдържа само цифри')
+        if bulstat and len(bulstat) not in [9, 10, 11]:
+            raise ValidationError('БУЛСТАТ трябва да бъде 9, 10 или 11 цифри')
+        return bulstat
+
+
+class IndividualCustomerForm(forms.ModelForm):
+    """Form for creating and editing individual customers"""
+    
+    class Meta:
+        model = Customer
+        fields = [
+            'number', 'customer_name', 'customer_address_1', 'telno'
         ]
     
         widgets = {
@@ -28,93 +103,18 @@ class CustomerForm(forms.ModelForm):
             }),
             'customer_address_1': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Основен адрес'
-            }),
-            'customer_address_2': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Допълнителен адрес'
-            }),
-            'customer_mol': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'МОЛ (Молимо отговорно лице)'
-            }),
-            'customer_taxno': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'ДДС номер'
-            }),
-            'customer_doctype': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0'
-            }),
-            'receiver': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Име на получател'
-            }),
-            'receiver_details': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Детайли за получателя'
-            }),
-            'customer_bulstat': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'БУЛСТАТ номер (9-11 цифри)',
-                'pattern': r'\d{9,11}'
+                'placeholder': 'Адрес'
             }),
             'telno': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Телефонен номер'
-            }),
-            'faxno': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Факс номер'
-            }),
-            'email': forms.EmailInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'имейл@example.com'
-            }),
-            'res_address_1': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Адрес за живеене 1'
-            }),
-            'res_address_2': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Адрес за живеене 2'
-            }),
-            'eidate': forms.DateTimeInput(attrs={
-                'class': 'form-control',
-                'type': 'datetime-local'
-            }),
-            'contact': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Контактно лице'
-            }),
-            'partida': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0'
-            }),
-            'bulstatletter': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'БУЛСТАТ буква',
-                'maxlength': '10'
-            }),
-            'include': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'active': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'customer': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'supplier': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
+            })
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Mark required fields
         self.fields['customer_name'].required = True
-        self.fields['customer_name'].widget.attrs['required'] = True
         
         # Auto-generate customer number for new customers
         if not self.instance.pk:  # Only for new customers
@@ -128,27 +128,75 @@ class CustomerForm(forms.ModelForm):
         # Set field labels
         self.fields['number'].label = 'Номер'
         self.fields['customer_name'].label = 'Име на клиент'
-        self.fields['customer_address_1'].label = 'Адрес 1'
-        self.fields['customer_address_2'].label = 'Адрес 2'
+        self.fields['customer_address_1'].label = 'Адрес'
+        self.fields['telno'].label = 'Телефон'
+
+
+class CompanyCustomerForm(forms.ModelForm):
+    """Form for creating and editing company customers"""
+    
+    class Meta:
+        model = Customer
+        fields = [
+            'number', 'customer_name', 'customer_address_1',
+            'customer_mol', 'customer_taxno', 'customer_bulstat', 'telno'
+        ]
+    
+        widgets = {
+            'number': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Автоматично генериран',
+                'readonly': True
+            }),
+            'customer_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Въведете име на контрагента'
+            }),
+            'customer_address_1': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Адрес'
+            }),
+            'customer_mol': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'МОЛ (Молимо отговорно лице)'
+            }),
+            'customer_taxno': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'ИН по ЗДДС'
+            }),
+            'customer_bulstat': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'БУЛСТАТ номер (9-11 цифри)',
+                'pattern': r'\d{9,11}'
+            }),
+            'telno': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Телефонен номер'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['customer_name'].required = True
+        
+        # Auto-generate customer number for new customers
+        if not self.instance.pk:  # Only for new customers
+            last_customer = Customer.objects.order_by('-number').first()
+            if last_customer:
+                next_number = last_customer.number + 1
+            else:
+                next_number = 1
+            self.fields['number'].initial = next_number
+    
+        # Set field labels
+        self.fields['number'].label = 'Номер'
+        self.fields['customer_name'].label = 'Име на Контрагент'
+        self.fields['customer_address_1'].label = 'Адрес'
         self.fields['customer_mol'].label = 'МОЛ'
-        self.fields['customer_taxno'].label = 'ДДС номер'
-        self.fields['customer_doctype'].label = 'Тип документ'
-        self.fields['receiver'].label = 'Получател'
-        self.fields['receiver_details'].label = 'Детайли за получател'
+        self.fields['customer_taxno'].label = 'ИН по ЗДДС'
         self.fields['customer_bulstat'].label = 'БУЛСТАТ'
         self.fields['telno'].label = 'Телефон'
-        self.fields['faxno'].label = 'Факс'
-        self.fields['email'].label = 'Имейл'
-        self.fields['res_address_1'].label = 'Адрес за живеене 1'
-        self.fields['res_address_2'].label = 'Адрес за живеене 2'
-        self.fields['eidate'].label = 'Дата на влизане'
-        self.fields['include'].label = 'Включен'
-        self.fields['active'].label = 'Активен'
-        self.fields['customer'].label = 'Клиент'
-        self.fields['supplier'].label = 'Доставчик'
-        self.fields['contact'].label = 'Контакт'
-        self.fields['partida'].label = 'Партида'
-        self.fields['bulstatletter'].label = 'БУЛСТАТ буква'
     
     def clean_customer_bulstat(self):
         """Validate BULSTAT format"""

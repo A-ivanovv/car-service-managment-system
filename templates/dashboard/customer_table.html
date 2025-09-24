@@ -1,0 +1,71 @@
+{% for customer in customers %}
+<tr>
+    <td><strong>{{ customer.id }}</strong></td>
+    <td>
+        <a href="{% url 'customer_detail' customer.pk %}" class="text-decoration-none">
+            {{ customer.customer_name }}
+        </a>
+    </td>
+    <td>{{ customer.full_address|truncatechars:30 }}</td>
+    <td>{{ customer.telno|default:"-" }}</td>
+    <td>
+        {% if customer.cars.all %}
+            <div class="cars-display">
+                {% for car in customer.cars.all|slice:":3" %}
+                    <div class="car-item">
+                        <span class="badge {% if car.is_active %}bg-success{% else %}bg-secondary{% endif %}" 
+                              title="{% if car.plate_number %}Номер: {{ car.plate_number }}{% endif %}{% if car.brand_model %}&#10;Модел: {{ car.brand_model }}{% endif %}{% if car.year %}&#10;Година: {{ car.year }}{% endif %}{% if car.color %}&#10;Цвят: {{ car.color }}{% endif %}{% if car.vin %}&#10;VIN: {{ car.vin }}{% endif %}"
+                              data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="fas fa-car me-1"></i>
+                            {% if car.plate_number %}
+                                {{ car.plate_number }}
+                            {% else %}
+                                {{ car.brand_model|default:"Кола"|truncatechars:6 }}
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endfor %}
+                {% if customer.cars.count > 3 %}
+                    <div class="car-item">
+                        <span class="badge bg-info" 
+                              title="{% for car in customer.cars.all|slice:'3:' %}{% if car.plate_number %}{{ car.plate_number }}{% else %}{{ car.brand_model|default:'Кола' }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}"
+                              data-bs-toggle="tooltip" data-bs-placement="top">
+                            <i class="fas fa-plus me-1"></i>+{{ customer.cars.count|add:"-3" }}
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <span class="text-muted">-</span>
+        {% endif %}
+    </td>
+    <td>
+        <span class="badge {% if customer.customer_type == 'Фирма' %}bg-primary{% else %}bg-info{% endif %}">
+            <i class="{{ customer.customer_type_icon }} me-1"></i>{{ customer.customer_type }}
+        </span>
+        {% if customer.supplier %}
+            <span class="badge bg-warning ms-1">Доставчик</span>
+        {% endif %}
+    </td>
+    <td>
+        <div class="btn-group btn-group-sm">
+            <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-outline-info" title="Преглед">
+                <i class="fas fa-eye"></i>
+            </a>
+            <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-outline-warning" title="Редактирай">
+                <i class="fas fa-edit"></i>
+            </a>
+            <a href="{% url 'customer_delete' customer.pk %}" class="btn btn-outline-danger" title="Изтрий">
+                <i class="fas fa-trash"></i>
+            </a>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="7" class="text-center text-muted py-4">
+        <i class="fas fa-search fa-2x mb-2"></i>
+        <br>Няма намерени клиенти
+    </td>
+</tr>
+{% endfor %}

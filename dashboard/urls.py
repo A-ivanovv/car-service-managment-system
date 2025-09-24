@@ -7,6 +7,11 @@ urlpatterns = [
     # Customer URLs
     path('klienti/', views.klienti, name='klienti'),
     path('klienti/nov/', views.customer_create, name='customer_create'),
+    path('klienti/get-next-number/', views.get_next_customer_number, name='get_next_customer_number'),
+    path('klienti/search-ajax/', views.customer_search_ajax, name='customer_search_ajax'),
+    path('pregled-poruchki/search-ajax/', views.order_search_ajax, name='order_search_ajax'),
+    path('fakturi/search-ajax/', views.invoice_search_ajax, name='invoice_search_ajax'),
+    path('fakturi/<int:pk>/', views.invoice_detail, name='invoice_detail'),
     path('klienti/<int:pk>/', views.customer_detail, name='customer_detail'),
     path('klienti/<int:pk>/edit/', views.customer_edit, name='customer_edit'),
     path('klienti/<int:pk>/delete/', views.customer_delete, name='customer_delete'),

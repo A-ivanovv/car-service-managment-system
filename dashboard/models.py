@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.utils import timezone
 
 class Customer(models.Model):
     """Customer model for car service system"""
@@ -80,6 +81,20 @@ class Customer(models.Model):
         if self.email:
             contact_parts.append(f"Имейл: {self.email}")
         return ' | '.join(contact_parts)
+    
+    @property
+    def customer_type(self):
+        """Determine if customer is individual or company based on business fields"""
+        if self.customer_bulstat or self.customer_mol or self.customer_taxno:
+            return "Фирма"
+        return "Частно лице"
+    
+    @property
+    def customer_type_icon(self):
+        """Get icon for customer type"""
+        if self.customer_type == "Фирма":
+            return "fas fa-building"
+        return "fas fa-user"
 
 
 class Car(models.Model):
@@ -818,6 +833,23 @@ class ImportLog(models.Model):
         help_text="Дата от фактурата/документа"
     )
     
+    invoice_number = models.CharField(
+        max_length=100,
+        verbose_name="Номер на фактурата",
+        help_text="Уникален номер на фактурата/документа",
+        blank=True,
+        null=True
+    )
+    
+    import_identifier = models.CharField(
+        max_length=200,
+        verbose_name="Идентификатор на импорта",
+        help_text="Уникален идентификатор за предотвратяване на дублиране",
+        unique=True,
+        blank=True,
+        null=True
+    )
+    
     import_date = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Дата на импорт"
@@ -878,3 +910,171 @@ class ImportLog(models.Model):
     
     def __str__(self):
         return f"{self.get_provider_display()} - {self.invoice_date} ({self.import_date.strftime('%d.%m.%Y %H:%M')})"
+
+
+class Invoice(models.Model):
+    """Invoice model for storing invoice information"""
+    
+    INVOICE_STATUS_CHOICES = [
+        ('sent', 'Изпратена'),
+        ('paid', 'Платена'),
+        ('overdue', 'Просрочена'),
+        ('cancelled', 'Отказана'),
+    ]
+    
+    # Basic invoice information
+    invoice_number = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name="Номер на фактура",
+        help_text="Уникален номер на фактурата"
+    )
+    
+    # Related order
+    order = models.OneToOneField(
+        'Order',
+        on_delete=models.CASCADE,
+        related_name='invoice',
+        verbose_name="Свързана поръчка",
+        help_text="Поръчката, от която е създадена фактурата"
+    )
+    
+    # Invoice dates
+    invoice_date = models.DateField(
+        verbose_name="Дата на фактура",
+        help_text="Дата на издаване на фактурата"
+    )
+    due_date = models.DateField(
+        verbose_name="Краен срок за плащане",
+        help_text="Дата до която трябва да бъде платена фактурата"
+    )
+    
+    # Client information (copied from order for historical accuracy)
+    client_name = models.CharField(
+        max_length=255,
+        verbose_name="Име на клиент",
+        help_text="Име на клиента"
+    )
+    client_address = models.TextField(
+        verbose_name="Адрес на клиент",
+        help_text="Адрес на клиента",
+        blank=True
+    )
+    client_phone = models.CharField(
+        max_length=20,
+        verbose_name="Телефон на клиент",
+        help_text="Телефонен номер на клиента",
+        blank=True
+    )
+    client_tax_number = models.CharField(
+        max_length=50,
+        verbose_name="ДДС номер на клиент",
+        help_text="ДДС номер на клиента",
+        blank=True
+    )
+    
+    # Car information (copied from order for historical accuracy)
+    car_brand_model = models.CharField(
+        max_length=255,
+        verbose_name="Марка и модел на кола",
+        help_text="Марка и модел на автомобила",
+        blank=True
+    )
+    car_plate_number = models.CharField(
+        max_length=20,
+        verbose_name="Регистрационен номер",
+        help_text="Регистрационен номер на автомобила",
+        blank=True
+    )
+    car_vin = models.CharField(
+        max_length=17,
+        verbose_name="VIN номер",
+        help_text="VIN номер на автомобила",
+        blank=True
+    )
+    
+    # Financial information
+    subtotal = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Междинна сума",
+        help_text="Сума преди ДДС"
+    )
+    vat_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="ДДС сума",
+        help_text="Сума на ДДС"
+    )
+    total_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Обща сума",
+        help_text="Обща сума с ДДС"
+    )
+    
+    # Status and metadata
+    status = models.CharField(
+        max_length=20,
+        choices=INVOICE_STATUS_CHOICES,
+        default='sent',
+        verbose_name="Статус",
+        help_text="Статус на фактурата"
+    )
+    
+    notes = models.TextField(
+        verbose_name="Бележки",
+        help_text="Допълнителни бележки за фактурата",
+        blank=True
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Създадена на",
+        help_text="Дата и час на създаване"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновена на",
+        help_text="Дата и час на последно обновяване"
+    )
+    
+    class Meta:
+        verbose_name = "Фактура"
+        verbose_name_plural = "Фактури"
+        ordering = ['-invoice_date', '-created_at']
+    
+    def __str__(self):
+        return f"Фактура {self.invoice_number} - {self.client_name} ({self.total_amount} лв.)"
+    
+    @property
+    def is_overdue(self):
+        """Check if invoice is overdue"""
+        if self.status == 'paid':
+            return False
+        return self.due_date < timezone.now().date()
+    
+    @property
+    def days_until_due(self):
+        """Calculate days until due date"""
+        if self.status == 'paid':
+            return 0
+        delta = self.due_date - timezone.now().date()
+        return delta.days
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate invoice number if not provided
+        if not self.invoice_number:
+            last_invoice = Invoice.objects.order_by('-id').first()
+            if last_invoice and last_invoice.invoice_number.isdigit():
+                self.invoice_number = str(int(last_invoice.invoice_number) + 1)
+            else:
+                self.invoice_number = '1'
+        
+        # Set due date if not provided (30 days from invoice date)
+        if not self.due_date and self.invoice_date:
+            from datetime import timedelta
+            self.due_date = self.invoice_date + timedelta(days=30)
+        
+        super().save(*args, **kwargs)

@@ -1,0 +1,63 @@
+{% for invoice in invoices %}
+<tr class="invoice-row">
+    <td>{{ forloop.counter|add:invoices.start_index|add:"-1" }}</td>
+    <td><strong>{{ invoice.invoice_number }}</strong></td>
+    <td>{{ invoice.invoice_date|date:"d.m.Y" }}</td>
+    <td>{{ invoice.due_date|date:"d.m.Y" }}</td>
+    <td>
+        <div>
+            <strong>{{ invoice.client_name }}</strong>
+            {% if invoice.client_phone %}
+                <br><small class="text-muted">{{ invoice.client_phone }}</small>
+            {% endif %}
+        </div>
+    </td>
+    <td>
+        <div>
+            <strong>{{ invoice.car_brand_model }}</strong>
+            {% if invoice.car_plate_number %}
+                <br><small class="text-muted">{{ invoice.car_plate_number }}</small>
+            {% endif %}
+        </div>
+    </td>
+    <td>
+        {% if invoice.status == 'sent' %}
+            <span class="badge bg-info status-badge">{{ invoice.get_status_display }}</span>
+        {% elif invoice.status == 'paid' %}
+            <span class="badge bg-success status-badge">{{ invoice.get_status_display }}</span>
+        {% elif invoice.status == 'overdue' %}
+            <span class="badge bg-danger status-badge">{{ invoice.get_status_display }}</span>
+        {% elif invoice.status == 'cancelled' %}
+            <span class="badge bg-dark status-badge">{{ invoice.get_status_display }}</span>
+        {% else %}
+            <span class="badge bg-secondary status-badge">{{ invoice.get_status_display }}</span>
+        {% endif %}
+        
+        {% if invoice.is_overdue and invoice.status != 'paid' %}
+            <br><small class="text-danger">Просрочена</small>
+        {% elif invoice.days_until_due <= 7 and invoice.days_until_due > 0 and invoice.status != 'paid' %}
+            <br><small class="text-warning">Изтича скоро</small>
+        {% endif %}
+    </td>
+    <td><strong>{{ invoice.total_amount|floatformat:2 }} лв.</strong></td>
+    <td>
+        <div class="btn-group btn-group-sm" role="group">
+            <a href="{% url 'invoice_detail' invoice.pk %}" class="btn btn-outline-info" title="Преглед на фактура">
+                <i class="fas fa-eye me-1"></i>Преглед
+            </a>
+            <a href="{% url 'order_generate_invoice' invoice.order.pk %}" class="btn btn-outline-success" title="Генерирай PDF">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+            {% if invoice.status == 'sent' %}
+                <button type="button" class="btn btn-outline-success" title="Маркирай като платена" onclick="markAsPaid({{ invoice.pk }})">
+                    <i class="fas fa-check me-1"></i>Платена
+                </button>
+            {% endif %}
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="9" class="text-center text-muted py-4">Няма намерени фактури.</td>
+</tr>
+{% endfor %}

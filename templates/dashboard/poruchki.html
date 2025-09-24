@@ -257,14 +257,12 @@
                                             {% endfor %}
                                         </td>
                                         <td>
-                                            {% if order.status == 'pending' %}
+                                            {% if order.status == 'offer' %}
                                                 <span class="badge bg-warning">{{ order.get_status_display }}</span>
-                                            {% elif order.status == 'in_progress' %}
-                                                <span class="badge bg-info">{{ order.get_status_display }}</span>
-                                            {% elif order.status == 'completed' %}
+                                            {% elif order.status == 'invoice' %}
                                                 <span class="badge bg-success">{{ order.get_status_display }}</span>
-                                            {% elif order.status == 'cancelled' %}
-                                                <span class="badge bg-danger">{{ order.get_status_display }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ order.get_status_display }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
