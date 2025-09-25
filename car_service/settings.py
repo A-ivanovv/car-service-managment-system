@@ -66,16 +66,16 @@ if 'DATABASE_URL' in os.environ:
     }
 else:
     # Development: Use individual environment variables
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('SQL_DATABASE', 'car_service_db'),
-            'USER': os.getenv('SQL_USER', 'car_service_user'),
-            'PASSWORD': os.getenv('SQL_PASSWORD', 'dev_password_123'),
-            'HOST': os.getenv('SQL_HOST', 'db'),
-            'PORT': os.getenv('SQL_PORT', '5432'),
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.getenv('SQL_DATABASE', 'car_service_db'),
+                'USER': os.getenv('SQL_USER', 'car_service_user'),
+                'PASSWORD': os.getenv('DB_PASSWORD', 'dev_password_123'),
+                'HOST': os.getenv('SQL_HOST', 'db'),
+                'PORT': os.getenv('SQL_PORT', '5432'),
+            }
         }
-    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
