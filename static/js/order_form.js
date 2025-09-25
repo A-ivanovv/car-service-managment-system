@@ -176,6 +176,11 @@ function fillCarInfo(carData, clientData) {
         plateInput.value = carData.plate_number || '';
     }
     
+    const mileageInput = document.getElementById('car-mileage');
+    if (mileageInput) {
+        mileageInput.value = carData.mileage || '';
+    }
+    
     // Fill client information if available
     if (clientData) {
         // Fill client select dropdown
@@ -656,19 +661,7 @@ function initializeFormInteractions() {
     
     // Unit dropdowns are populated in the main initialization
     
-    // Car select change - populate car information when car is selected
-    const carSelect = document.getElementById('car-select');
-    if (carSelect) {
-        carSelect.addEventListener('change', function() {
-            if (this.value) {
-                // Fetch car information and populate fields
-                fetchCarInfo(this.value);
-            } else {
-                // Clear car fields if no car selected
-                clearCarFields();
-            }
-        });
-    }
+    // Car select change is now handled in the inline script in the template
     
     // Client select change - populate client information when client is selected
     const clientSelect = document.getElementById('client-select');

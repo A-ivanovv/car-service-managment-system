@@ -10,7 +10,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=1
+      - DEBUG=true
       - SECRET_KEY=django-insecure-dev-key-change-in-production
       - SQL_DATABASE=car_service_db
       - SQL_USER=car_service_user

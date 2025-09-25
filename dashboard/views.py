@@ -2056,6 +2056,8 @@ def order_create(request):
             # Set status based on action
             if action == 'invoice':
                 order.status = 'invoice'
+            elif action == 'draft':
+                order.status = 'offer'  # Save as offer for preview
             else:  # offer
                 order.status = 'offer'
                 
@@ -2080,6 +2082,64 @@ def order_create(request):
                                 messages.warning(request, f'Внимание: Артикул {sklad_item.article_number} има отрицателно количество ({sklad_item.quantity}). Необходимо е попълване на склада!')
                         except Exception as e:
                             messages.error(request, f'Грешка при обновяване на склада за артикул {item.article_number}: {str(e)}')
+                
+                # Create Invoice record for fakturi table
+                from .models import Invoice
+                from datetime import timedelta
+                
+                # Generate fiscal-compliant invoice number
+                from datetime import datetime
+                current_year = datetime.now().year
+                
+                # Get the last invoice number for this year
+                last_invoice = Invoice.objects.filter(
+                    invoice_number__startswith=f'{current_year}-'
+                ).order_by('-invoice_number').first()
+                
+                if last_invoice and last_invoice.invoice_number.startswith(f'{current_year}-'):
+                    # Extract the sequential number and increment
+                    try:
+                        last_number = int(last_invoice.invoice_number.split('-')[1])
+                        next_number = last_number + 1
+                    except (ValueError, IndexError):
+                        next_number = 1
+                else:
+                    next_number = 1
+                
+                # Format: YYYY-XXXXXX (year + 6-digit sequential number)
+                invoice_number = f'{current_year}-{next_number:06d}'
+                
+                # Set invoice dates
+                invoice_date = order.order_date
+                due_date = invoice_date + timedelta(days=30)  # 30 days payment term
+                
+                # Create invoice record
+                invoice = Invoice.objects.create(
+                    invoice_number=invoice_number,
+                    order=order,
+                    invoice_date=invoice_date,
+                    due_date=due_date,
+                    client_name=order.client_name,
+                    client_address=order.client_address or '',
+                    client_phone=order.client_phone or '',
+                    car_brand_model=order.car_brand_model,
+                    car_plate_number=order.car_plate_number or '',
+                    car_vin=order.car_vin or '',
+                    subtotal=order.total_without_vat,
+                    vat_amount=order.total_vat,
+                    total_amount=order.total_with_vat,
+                    notes=order.notes or '',
+                    status='sent'  # Default status
+                )
+            
+            # Handle AJAX request for preview (draft action)
+            if action == 'draft' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'order_id': order.id,
+                    'order_number': order.order_number,
+                    'message': f'Поръчка {order.order_number} е запазена успешно!'
+                })
             
             # Generate PDF based on action
             from .pdf_generator import generate_invoice_pdf, generate_offer_pdf
@@ -2090,6 +2150,15 @@ def order_create(request):
             else:  # offer
                 messages.success(request, f'Поръчка {order.order_number} е създадена и офертата е генерирана успешно!')
                 return generate_offer_pdf(order)
+        else:
+            # Handle form errors for AJAX requests
+            if request.headers.get('Content-Type') == 'application/json':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Грешка при валидация на формата',
+                    'form_errors': form.errors,
+                    'item_errors': item_formset.errors
+                })
     else:
         form = OrderForm()
         item_formset = OrderItemFormSet()
