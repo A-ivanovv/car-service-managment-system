@@ -767,6 +767,96 @@ class OrderItemForm(forms.ModelForm):
         return cleaned_data
 
 
+class OrderForm(forms.ModelForm):
+    """Form for creating and editing orders"""
+    
+    class Meta:
+        model = Order
+        fields = [
+            'client', 'client_name', 'client_address', 'client_phone',
+            'car', 'car_brand_model', 'car_vin', 'car_plate_number', 'car_mileage',
+            'employees', 'notes'
+        ]
+        
+        widgets = {
+            'client': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'client-select'
+            }),
+            'client_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Име на клиента',
+                'id': 'client-name'
+            }),
+            'client_address': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Адрес на клиента',
+                'id': 'client-address'
+            }),
+            'client_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Телефон на клиента',
+                'id': 'client-phone'
+            }),
+            'car': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'car-select'
+            }),
+            'car_brand_model': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Марка и модел на колата',
+                'id': 'car-brand-model'
+            }),
+            'car_vin': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'VIN номер',
+                'id': 'car-vin'
+            }),
+            'car_plate_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Регистрационен номер',
+                'id': 'car-plate-number'
+            }),
+            'car_mileage': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Пробег в км',
+                'id': 'car-mileage',
+                'min': '0'
+            }),
+            'employees': forms.SelectMultiple(attrs={
+                'class': 'form-select',
+                'id': 'employees-select'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Допълнителни бележки',
+                'rows': 3,
+                'id': 'notes'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Populate client choices
+        from .models import Customer
+        customers = Customer.objects.all().order_by('customer_name')
+        self.fields['client'].choices = [('', 'Избери клиент от базата данни')] + [(customer.id, f"{customer.customer_name} ({customer.telno})") for customer in customers]
+        
+        # Populate car choices
+        from .models import Car
+        cars = Car.objects.all().order_by('brand_model')
+        self.fields['car'].choices = [('', 'Избери кола от базата данни')] + [(car.id, f"{car.brand_model} ({car.plate_number})") for car in cars]
+        
+        # Populate employee choices
+        from .models import Employee
+        employees = Employee.objects.all().order_by('first_name', 'last_name')
+        self.fields['employees'].choices = [(emp.id, f"{emp.first_name} {emp.last_name}") for emp in employees]
+        
+        # Make employees field not required
+        self.fields['employees'].required = False
+
+
 class OrderSearchForm(forms.Form):
     """Form for searching orders"""
     
@@ -809,12 +899,108 @@ class OrderSearchForm(forms.Form):
     )
 
 
+class OrderItemForm(forms.ModelForm):
+    """Form for order items"""
+    
+    class Meta:
+        model = OrderItem
+        fields = [
+            'sklad_item', 'article_number', 'name', 'unit', 
+            'purchase_price', 'price_with_vat', 'quantity', 'include_vat'
+        ]
+        
+        widgets = {
+            'sklad_item': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'sklad-item'
+            }),
+            'article_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Артикул номер',
+                'id': 'article-number'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Наименование',
+                'id': 'item-name'
+            }),
+            'unit': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'item-unit'
+            }),
+            'purchase_price': forms.NumberInput(attrs={
+                'class': 'form-control price-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+                'id': 'purchase-price',
+                'style': 'min-width: 80px; text-align: right;'
+            }),
+            'price_with_vat': forms.NumberInput(attrs={
+                'class': 'form-control price-with-vat-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+                'id': 'price-with-vat',
+                'style': 'min-width: 80px; text-align: right;'
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control quantity-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00',
+                'id': 'quantity',
+                'style': 'min-width: 60px; text-align: right;'
+            }),
+            'include_vat': forms.CheckboxInput(attrs={
+                'class': 'form-check-input include-vat-checkbox',
+                'id': 'include-vat'
+            }),
+        }
+        labels = {
+            'sklad_item': 'Артикул от склад',
+            'article_number': 'Артикул номер',
+            'name': 'Наименование',
+            'unit': 'Мерна единица',
+            'purchase_price': 'Единична цена без ДДС',
+            'price_with_vat': 'Единична цена с ДДС',
+            'quantity': 'Количество',
+            'include_vat': 'Включи ДДС',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark required fields
+        self.fields['name'].required = True
+        self.fields['unit'].required = True
+        self.fields['purchase_price'].required = True
+        self.fields['quantity'].required = True
+        
+        # Populate unit choices from database
+        from .models import Sklad
+        units = Sklad.objects.values_list('unit', flat=True).distinct().order_by('unit')
+        unit_choices = [('', 'Избери мерна единица')] + [(unit, unit) for unit in units if unit]
+        self.fields['unit'].choices = unit_choices
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        sklad_item = cleaned_data.get('sklad_item')
+        article_number = cleaned_data.get('article_number')
+        name = cleaned_data.get('name')
+        
+        # Validate that either sklad_item is selected or standalone info is provided
+        if not sklad_item and not (article_number and name):
+            raise ValidationError('Моля изберете артикул от склад или въведете артикул номер и наименование.')
+        
+        return cleaned_data
+
+
 # Inline formset for order items
 OrderItemFormSet = inlineformset_factory(
     Order,
     OrderItem,
     form=OrderItemForm,
-    extra=1,  # Show 1 empty form by default
+    extra=1,  # Show 1 form by default, add more dynamically
     can_delete=True,  # Allow deleting items
     min_num=0,  # Minimum 0 items
     validate_min=False,  # Don't validate minimum on form submission

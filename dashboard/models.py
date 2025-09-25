@@ -746,6 +746,14 @@ class OrderItem(models.Model):
         verbose_name="Единична цена без ДДС",
         help_text="Цена за единица без ДДС"
     )
+    price_with_vat = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Единична цена с ДДС",
+        help_text="Цена за единица с ДДС"
+    )
     quantity = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -784,12 +792,18 @@ class OrderItem(models.Model):
         return f"{self.name} - {self.quantity} {self.unit}"
     
     @property
-    def price_with_vat(self):
+    def calculated_price_with_vat(self):
         """Calculate price with VAT (20%) if include_vat is True"""
         from decimal import Decimal
         if self.include_vat:
             return self.purchase_price * Decimal('1.20')
         return self.purchase_price
+    
+    def get_price_with_vat(self):
+        """Get price with VAT - use stored value if available, otherwise calculate"""
+        if self.price_with_vat is not None:
+            return self.price_with_vat
+        return self.calculated_price_with_vat
     
     @property
     def total_price(self):
@@ -807,10 +821,7 @@ class OrderItem(models.Model):
     @property
     def total_price_with_vat(self):
         """Calculate total price with VAT if include_vat is True"""
-        from decimal import Decimal
-        if self.include_vat:
-            return self.total_price * Decimal('1.20')
-        return self.total_price
+        return self.get_price_with_vat() * self.quantity
 
 
 class ImportLog(models.Model):

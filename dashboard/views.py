@@ -2063,6 +2063,10 @@ def order_create(request):
                 
             order.save()
             
+            # Save employees (many-to-many relationship)
+            if 'employees' in form.cleaned_data:
+                order.employees.set(form.cleaned_data['employees'])
+            
             # Save order items
             item_formset.instance = order
             items = item_formset.save()
