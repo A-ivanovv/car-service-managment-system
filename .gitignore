@@ -232,3 +232,4 @@ database-exports/
 *.mdb
 *.pdf
 .env.production
+container/pg_data/

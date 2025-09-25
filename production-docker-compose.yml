@@ -20,16 +20,18 @@ services:
       - car_service_network
 
   db:
-    image: postgres:16
+    image: postgres:17
     container_name: car-service-db
     restart: unless-stopped
     environment:
       - POSTGRES_DB=car_service_db
       - POSTGRES_USER=car_service_user
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./container/pg_conf/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./container/pg_dump/:/docker-entrypoint-initdb.d/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U car_service_user -d car_service_db"]
       interval: 10s

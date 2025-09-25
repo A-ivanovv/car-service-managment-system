@@ -57,13 +57,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'car_service.wsgi.application'
 
-# Database - Using SQLite for now, will switch to PostgreSQL later
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database configuration
+if 'DATABASE_URL' in os.environ:
+    # Production: Use DATABASE_URL
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(os.environ['DATABASE_URL'])
     }
-}
+else:
+    # Development: Use individual environment variables
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('SQL_DATABASE', 'car_service_db'),
+            'USER': os.getenv('SQL_USER', 'car_service_user'),
+            'PASSWORD': os.getenv('SQL_PASSWORD', 'dev_password_123'),
+            'HOST': os.getenv('SQL_HOST', 'db'),
+            'PORT': os.getenv('SQL_PORT', '5432'),
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

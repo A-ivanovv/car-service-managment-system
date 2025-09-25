@@ -64,6 +64,15 @@ sleep 10
 echo -e "${YELLOW}🗄️  Running database migrations...${NC}"
 docker-compose -f $COMPOSE_FILE exec web python manage.py migrate
 
+# Migrate data from SQLite to PostgreSQL (if SQLite exists)
+echo -e "${YELLOW}🔄 Checking for data migration...${NC}"
+if docker-compose -f $COMPOSE_FILE exec web test -f /app/db.sqlite3; then
+    echo -e "${YELLOW}📊 Found SQLite database, migrating data to PostgreSQL...${NC}"
+    docker-compose -f $COMPOSE_FILE exec web python production_migrate.py
+else
+    echo -e "${YELLOW}⚠️  No SQLite database found, skipping data migration${NC}"
+fi
+
 # Collect static files
 echo -e "${YELLOW}📦 Collecting static files...${NC}"
 docker-compose -f $COMPOSE_FILE exec web python manage.py collectstatic --noinput
@@ -80,6 +89,6 @@ echo -e "${GREEN}✅ Deployment completed!${NC}"
 echo -e "${YELLOW}📊 Running containers:${NC}"
 docker-compose -f $COMPOSE_FILE ps
 
-echo -e "${GREEN}🌐 Application is available at: http://188.245.117.191:8030${NC}"
+echo -e "${GREEN}🌐 Application is available at: http://188.245.117.191:8031${NC}"
 echo -e "${YELLOW}📝 To view logs: docker-compose -f $COMPOSE_FILE logs -f${NC}"
 echo -e "${YELLOW}🛑 To stop: docker-compose -f $COMPOSE_FILE down${NC}"
