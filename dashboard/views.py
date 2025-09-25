@@ -1222,6 +1222,7 @@ def sklad_autocomplete(request):
     return JsonResponse({'suggestions': suggestions})
 
 
+@csrf_exempt
 def sklad_import(request):
     """Handle file imports for different providers"""
     if request.method != 'POST':
