@@ -529,6 +529,7 @@ class Order(models.Model):
     ORDER_STATUS_CHOICES = [
         ('offer', 'Оферта'),
         ('invoice', 'Изготвена фактура'),
+        ('order', 'Изготвена поръчка'),
     ]
     
     # Order basic information

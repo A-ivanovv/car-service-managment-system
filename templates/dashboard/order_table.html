@@ -24,6 +24,8 @@
             <span class="badge bg-warning status-badge">{{ order.get_status_display }}</span>
         {% elif order.status == 'invoice' %}
             <span class="badge bg-success status-badge">{{ order.get_status_display }}</span>
+        {% elif order.status == 'order' %}
+            <span class="badge bg-info status-badge">{{ order.get_status_display }}</span>
         {% endif %}
     </td>
     <td><strong>{{ order.total_with_vat|floatformat:2 }} лв.</strong></td>
@@ -47,6 +49,13 @@
                         data-bs-toggle="modal" data-bs-target="#invoiceModal" 
                         data-order-id="{{ order.pk }}" data-order-number="{{ order.order_number }}">
                     <i class="fas fa-eye me-1"></i>Преглед на фактура
+                </button>
+            {% elif order.status == 'order' %}
+                <!-- For orders: Preview Order -->
+                <button type="button" class="btn btn-outline-info" title="Преглед на поръчка" 
+                        data-bs-toggle="modal" data-bs-target="#orderModal" 
+                        data-order-id="{{ order.pk }}" data-order-number="{{ order.order_number }}">
+                    <i class="fas fa-eye me-1"></i>Преглед на поръчка
                 </button>
             {% endif %}
         </div>

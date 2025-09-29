@@ -408,6 +408,9 @@
                         <button type="button" class="btn btn-success" id="completeInvoiceBtn" disabled>
                             <i class="fas fa-file-invoice me-1"></i>Завърши Фактура
                         </button>
+                        <button type="button" class="btn btn-info" id="completeOrderBtn" disabled>
+                            <i class="fas fa-file-alt me-1"></i>Завърши Поръчка
+                        </button>
                     </div>
                 </div>
             </form>
@@ -534,6 +537,34 @@
                     <i class="fas fa-print me-1"></i>Печат
                 </button>
                 <button type="button" class="btn btn-success" id="finishInvoiceBtn">
+                    <i class="fas fa-check me-1"></i>Завърши
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Preview Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderModalLabel">Преглед на поръчка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="orderModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Зареждане...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+                <button type="button" class="btn btn-info" id="printOrderBtn">
+                    <i class="fas fa-print me-1"></i>Печат
+                </button>
+                <button type="button" class="btn btn-success" id="finishOrderBtn">
                     <i class="fas fa-check me-1"></i>Завърши
                 </button>
             </div>
@@ -921,9 +952,11 @@ function checkFormValidity() {
     
     const offerBtn = document.getElementById('completeOfferBtn');
     const invoiceBtn = document.getElementById('completeInvoiceBtn');
+    const orderBtn = document.getElementById('completeOrderBtn');
     
     if (offerBtn) offerBtn.disabled = !canComplete;
     if (invoiceBtn) invoiceBtn.disabled = !canComplete;
+    if (orderBtn) orderBtn.disabled = !canComplete;
 }
 
 // Initialize form interactions
@@ -1524,6 +1557,12 @@ document.getElementById('completeInvoiceBtn').addEventListener('click', function
     saveOrderAndPreview('invoice');
 });
 
+// Complete order button
+document.getElementById('completeOrderBtn').addEventListener('click', function() {
+    currentOrderType = 'order';
+    saveOrderAndPreview('order');
+});
+
 function saveOrderAndPreview(type) {
     const form = document.getElementById('orderForm');
     const formData = new FormData(form);
@@ -1545,8 +1584,10 @@ function saveOrderAndPreview(type) {
             currentOrderId = data.order_id;
             if (type === 'offer') {
                 showOfferPreview(data.order_id);
-            } else {
+            } else if (type === 'invoice') {
                 showInvoicePreview(data.order_id);
+            } else if (type === 'order') {
+                showOrderPreview(data.order_id);
             }
         } else {
             alert('Грешка при запазване на поръчката: ' + (data.error || 'Неизвестна грешка'));
@@ -1594,6 +1635,24 @@ function showInvoicePreview(orderId) {
     modal.show();
 }
 
+function showOrderPreview(orderId) {
+    const modal = new bootstrap.Modal(document.getElementById('orderModal'));
+    const modalBody = document.getElementById('orderModalBody');
+    
+    modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Зареждане...</span></div></div>';
+    
+    fetch(`/poruchki/${orderId}/preview-order/`)
+        .then(response => response.text())
+        .then(html => {
+            modalBody.innerHTML = html;
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<div class="alert alert-danger">Грешка при зареждане на поръчката.</div>';
+        });
+    
+    modal.show();
+}
+
 // Finish buttons
 document.getElementById('finishOfferBtn').addEventListener('click', function() {
     if (currentOrderId) {
@@ -1604,6 +1663,12 @@ document.getElementById('finishOfferBtn').addEventListener('click', function() {
 document.getElementById('finishInvoiceBtn').addEventListener('click', function() {
     if (currentOrderId) {
         finishOrder('invoice');
+    }
+});
+
+document.getElementById('finishOrderBtn').addEventListener('click', function() {
+    if (currentOrderId) {
+        finishOrder('order');
     }
 });
 
@@ -1622,7 +1687,15 @@ function finishOrder(type) {
     .then(response => {
         if (response.ok) {
             // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById(type === 'offer' ? 'offerModal' : 'invoiceModal'));
+            let modalId;
+            if (type === 'offer') {
+                modalId = 'offerModal';
+            } else if (type === 'invoice') {
+                modalId = 'invoiceModal';
+            } else if (type === 'order') {
+                modalId = 'orderModal';
+            }
+            const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
             modal.hide();
             
             // Redirect to orders list
@@ -1665,6 +1738,24 @@ document.getElementById('printInvoiceBtn').addEventListener('click', function() 
         <html>
             <head>
                 <title>Фактура</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            </head>
+            <body>
+                ${modalBody.innerHTML}
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+});
+
+document.getElementById('printOrderBtn').addEventListener('click', function() {
+    const modalBody = document.getElementById('orderModalBody');
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Поръчка</title>
                 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
             </head>
             <body>

@@ -98,8 +98,13 @@ def safe_text(text):
 
 def generate_invoice_pdf(order):
     """Generate invoice PDF for an order"""
+    # Determine if this is an order or invoice based on status
+    is_order = order.status == 'order'
+    document_type = "order" if is_order else "invoice"
+    document_title = "ПОРЪЧКА" if is_order else "ФАКТУРА"
+    
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{order.order_number}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="{document_type}_{order.order_number}.pdf"'
     
     # Create PDF document
     doc = SimpleDocTemplate(response, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
@@ -131,7 +136,7 @@ def generate_invoice_pdf(order):
     story = []
     
     # Title
-    story.append(Paragraph(safe_text("ФАКТУРА"), title_style))
+    story.append(Paragraph(safe_text(document_title), title_style))
     story.append(Spacer(1, 20))
     
     # Company information
@@ -156,10 +161,12 @@ def generate_invoice_pdf(order):
     story.append(Spacer(1, 20))
     
     # Order information
-    story.append(Paragraph(safe_text("Информация за поръчката:"), heading_style))
+    info_label = "Информация за поръчката:" if is_order else "Информация за фактурата:"
+    story.append(Paragraph(safe_text(info_label), heading_style))
     
+    number_label = "Номер на поръчката:" if is_order else "Номер на фактурата:"
     order_info = [
-        [safe_text("Номер на фактурата:"), safe_text(order.order_number)],
+        [safe_text(number_label), safe_text(order.order_number)],
         [safe_text("Дата:"), safe_text(order.order_date.strftime("%d.%m.%Y"))],
         [safe_text("Клиент:"), safe_text(order.client_name)],
         [safe_text("Адрес:"), safe_text(order.client_address or "Не е посочен")],
@@ -243,11 +250,12 @@ def generate_invoice_pdf(order):
     # Bank information
     story.append(Paragraph(safe_text("Банкова информация:"), heading_style))
     
+    payment_basis = f"Поръчка №{order.order_number}" if is_order else f"Фактура №{order.order_number}"
     bank_info = [
         [safe_text("Банка:"), safe_text("УниКредит Булбанк АД")],
         [safe_text("IBAN:"), safe_text("BG18UNCR70001523123456")],
         [safe_text("BIC:"), safe_text("UNCRBGSF")],
-        [safe_text("Получател:"), safe_text("Автосервиз Дейански")],
+        [safe_text("Основание за плащане:"), safe_text(payment_basis)],
     ]
     
     bank_table = Table(bank_info, colWidths=[3*cm, 8*cm])

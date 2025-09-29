@@ -58,6 +58,7 @@ urlpatterns = [
     # Order preview and conversion URLs
     path('poruchki/<int:pk>/preview-offer/', views.order_preview_offer, name='order_preview_offer'),
     path('poruchki/<int:pk>/preview-invoice/', views.order_preview_invoice, name='order_preview_invoice'),
+    path('poruchki/<int:pk>/preview-order/', views.order_preview_order, name='order_preview_order'),
     path('poruchki/<int:pk>/convert-to-invoice/', views.order_convert_to_invoice, name='order_convert_to_invoice'),
     
     # Other pages

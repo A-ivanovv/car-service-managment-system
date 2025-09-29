@@ -261,6 +261,8 @@
                                                 <span class="badge bg-warning">{{ order.get_status_display }}</span>
                                             {% elif order.status == 'invoice' %}
                                                 <span class="badge bg-success">{{ order.get_status_display }}</span>
+                                            {% elif order.status == 'order' %}
+                                                <span class="badge bg-info">{{ order.get_status_display }}</span>
                                             {% else %}
                                                 <span class="badge bg-secondary">{{ order.get_status_display }}</span>
                                             {% endif %}

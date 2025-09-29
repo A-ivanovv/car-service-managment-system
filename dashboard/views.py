@@ -2056,6 +2056,8 @@ def order_create(request):
             # Set status based on action
             if action == 'invoice':
                 order.status = 'invoice'
+            elif action == 'order':
+                order.status = 'order'
             elif action == 'draft':
                 order.status = 'offer'  # Save as offer for preview
             else:  # offer
@@ -2071,8 +2073,8 @@ def order_create(request):
             item_formset.instance = order
             items = item_formset.save()
             
-            # Only reduce sklad quantities for invoices, not for offers
-            if action == 'invoice':
+            # Only reduce sklad quantities for invoices and orders, not for offers
+            if action == 'invoice' or action == 'order':
                 for item in items:
                     if item.sklad_item:
                         try:
@@ -2151,6 +2153,9 @@ def order_create(request):
             if action == 'invoice':
                 messages.success(request, f'Поръчка {order.order_number} е създадена и фактурата е генерирана успешно!')
                 return generate_invoice_pdf(order)
+            elif action == 'order':
+                messages.success(request, f'Поръчка {order.order_number} е създадена и поръчката е генерирана успешно!')
+                return generate_invoice_pdf(order)  # Use invoice PDF generator but will show "Поръчка" in the template
             else:  # offer
                 messages.success(request, f'Поръчка {order.order_number} е създадена и офертата е генерирана успешно!')
                 return generate_offer_pdf(order)
@@ -2535,6 +2540,14 @@ def order_preview_invoice(request, pk):
     """Preview invoice in modal"""
     order = get_object_or_404(Order, pk=pk)
     return render(request, 'dashboard/order_preview_invoice.html', {
+        'order': order
+    })
+
+
+def order_preview_order(request, pk):
+    """Preview order in modal"""
+    order = get_object_or_404(Order, pk=pk)
+    return render(request, 'dashboard/order_preview_order.html', {
         'order': order
     })
 

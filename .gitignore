@@ -233,3 +233,10 @@ database-exports/
 *.pdf
 .env.production
 container/pg_data/
+
+# CSV data files (MDB migration data)
+*.csv
+complete_car_records.csv
+customer_cars_summary.csv
+po_data_raw.csv
+customer_data_fixed.csv
