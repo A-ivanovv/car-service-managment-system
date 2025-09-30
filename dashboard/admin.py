@@ -40,10 +40,9 @@ class SkladAdmin(admin.ModelAdmin):
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
     """Admin interface for Customers"""
-    list_display = ('number', 'customer_name', 'phone', 'email', 'is_active')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('number', 'customer_name', 'phone', 'email', 'mol', 'eik_bulstat')
-    list_editable = ('is_active',)
+    list_display = ('number', 'customer_name', 'customer_mol', 'customer_taxno')
+    list_filter = ('customer_doctype', 'created_at')
+    search_fields = ('number', 'customer_name', 'customer_mol', 'customer_taxno', 'customer_address_1')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('number',)
 
@@ -51,12 +50,12 @@ class CustomerAdmin(admin.ModelAdmin):
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
     """Admin interface for Cars"""
-    list_display = ('plate_number', 'brand_model', 'owner', 'vin', 'is_active')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('plate_number', 'vin', 'brand_model', 'owner__customer_name')
-    list_editable = ('is_active',)
+    list_display = ('plate_number', 'brand_model', 'customer', 'vin')
+    list_filter = ('created_at',)
+    search_fields = ('plate_number', 'vin', 'brand_model', 'customer__customer_name')
     readonly_fields = ('created_at', 'updated_at')
-    autocomplete_fields = ('owner',)
+    autocomplete_fields = ('customer',)
+    ordering = ('plate_number',)
 
 
 @admin.register(Order)
@@ -67,6 +66,7 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ('order_number', 'client_name', 'car_plate_number', 'car_vin')
     readonly_fields = ('created_at', 'updated_at')
     date_hierarchy = 'order_date'
+    ordering = ('-order_date',)
     
     def total_with_vat(self, obj):
         """Display total price with VAT"""
@@ -80,14 +80,15 @@ class OrderItemAdmin(admin.ModelAdmin):
     list_display = ('order', 'name', 'unit', 'quantity', 'purchase_price', 'total_price', 'is_labor')
     list_filter = ('is_labor', 'unit')
     search_fields = ('name', 'article_number', 'order__order_number')
-    autocomplete_fields = ('order', 'sklad_item')
+    # Don't use autocomplete for order/sklad_item to avoid circular dependencies
+    # autocomplete_fields = ('order', 'sklad_item')
 
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     """Admin interface for Events/Calendar"""
-    list_display = ('title', 'start_datetime', 'end_datetime', 'all_day', 'car')
-    list_filter = ('all_day', 'start_datetime')
-    search_fields = ('title', 'description', 'car__plate_number')
+    list_display = ('title', 'start_datetime', 'end_datetime', 'is_all_day', 'event_type')
+    list_filter = ('is_all_day', 'event_type', 'start_datetime')
+    search_fields = ('title', 'description')
     date_hierarchy = 'start_datetime'
-    autocomplete_fields = ('car',)
+    ordering = ('-start_datetime',)
