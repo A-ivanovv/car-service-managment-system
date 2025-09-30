@@ -2536,6 +2536,7 @@ def order_get_client_info(request):
         return JsonResponse({'success': False, 'message': 'Не е предоставен ID на клиент'})
 
 
+@csrf_exempt
 def order_sklad_modal_data(request):
     """Get sklad data for the modal with pagination and filtering"""
     search_query = request.GET.get('search', '').strip()
@@ -2599,6 +2600,7 @@ def order_sklad_units(request):
     return JsonResponse({'units': units_list})
 
 
+@csrf_exempt
 def currency_rate(request):
     """Get current EUR to BGN exchange rate"""
     from .currency_utils import get_currency_info
