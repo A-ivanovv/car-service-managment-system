@@ -42,6 +42,7 @@ urlpatterns = [
     path('poruchki/autocomplete/client/', views.order_autocomplete_client, name='order_autocomplete_client'),
     path('poruchki/autocomplete/sklad/', views.order_autocomplete_sklad, name='order_autocomplete_sklad'),
     path('poruchki/get-car-info/', views.order_get_car_info, name='order_get_car_info'),
+    path('poruchki/car-modal-data/', views.order_car_modal_data, name='order_car_modal_data'),
     path('poruchki/get-client-info/', views.order_get_client_info, name='order_get_client_info'),
     
     # Order sklad modal URLs

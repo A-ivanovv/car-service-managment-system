@@ -583,6 +583,11 @@ class OrderForm(forms.ModelForm):
                 'class': 'form-select',
                 'id': 'car-select'
             }),
+            'employees': forms.SelectMultiple(attrs={
+                'class': 'form-select',
+                'id': 'employeeSelect',
+                'size': '3'
+            }),
             'car_brand_model': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Например: C4 Picasso',
@@ -651,6 +656,16 @@ class OrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # Populate employees choices
+        from .models import Employee
+        employee_choices = [('', 'Избери служител')]
+        for employee in Employee.objects.all():
+            employee_choices.append((employee.id, f"{employee.first_name} {employee.last_name}"))
+        
+        # Set the choices for the employees field
+        self.fields['employees'].choices = employee_choices
+        self.fields['employees'].required = False
+        
         # Add autocomplete attributes for JavaScript
         self.fields['car_vin'].widget.attrs.update({
             'data-autocomplete-url': '/poruchki/autocomplete/car-vin/',
@@ -664,6 +679,16 @@ class OrderForm(forms.ModelForm):
             'data-autocomplete-url': '/poruchki/autocomplete/client/',
             'autocomplete': 'off'
         })
+    
+    def clean_employees(self):
+        """Clean employees field - handle multiple selection properly"""
+        employees = self.cleaned_data.get('employees')
+        if not employees:
+            return []
+        # Convert to list if it's not already
+        if isinstance(employees, (str, int)):
+            return [employees]
+        return list(employees)
     
     def clean(self):
         cleaned_data = super().clean()

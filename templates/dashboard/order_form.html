@@ -132,8 +132,14 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Служители</label>
-                                    {{ form.employees }}
+                                    <label class="form-label">Служители <small class="text-muted">(незадължително)</small></label>
+                                    <div class="input-group">
+                                        {{ form.employees }}
+                                        <button type="button" class="btn btn-outline-secondary" id="clearEmployeeBtn" title="Премахни всички избрани">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted">Задръжте Ctrl (Cmd на Mac) за да изберете няколко служители</small>
                                     {% if form.employees.errors %}
                                         <div class="text-danger">{{ form.employees.errors }}</div>
                                     {% endif %}
@@ -159,8 +165,14 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form.car.label_tag }}
-                                    {{ form.car }}
+                                    <label class="form-label">Кола</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="carSearchInput" placeholder="Търсене по марка, модел, VIN или номер..." readonly>
+                                        <button type="button" class="btn btn-outline-primary" id="carModalBtn">
+                                            <i class="fas fa-search me-1"></i>Избери кола
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="car" id="carIdInput" value="{{ form.car.value|default:'' }}">
                                     {% if form.car.errors %}
                                         <div class="text-danger">{{ form.car.errors }}</div>
                                     {% endif %}
@@ -200,6 +212,7 @@
                                 <div class="mb-3">
                                     {{ form.car_mileage.label_tag }}
                                     {{ form.car_mileage }}
+                                    <small class="form-text text-muted">Текущ пробег на колата (автоматично попълва се при избор на кола)</small>
                                     {% if form.car_mileage.errors %}
                                         <div class="text-danger">{{ form.car_mileage.errors }}</div>
                                     {% endif %}
@@ -572,6 +585,64 @@
     </div>
 </div>
 
+<!-- Car Selection Modal -->
+<div class="modal fade" id="carModal" tabindex="-1" aria-labelledby="carModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="carModalLabel">Избор на кола</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Search and Filter Section -->
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Търсене:</label>
+                        <input type="text" class="form-control" id="carSearch" placeholder="Търсене по марка, модел, VIN, номер на колата...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-secondary" id="carClearBtn">
+                                <i class="fas fa-times me-1"></i>Изчисти
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Car Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered" id="carTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Марка/Модел</th>
+                                <th>VIN</th>
+                                <th>Номер</th>
+                                <th>Текущ пробег</th>
+                                <th>Клиент</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carTableBody">
+                            <!-- Cars will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <nav aria-label="Car pagination" id="carPagination">
+                    <ul class="pagination justify-content-center" id="carPaginationList">
+                        <!-- Pagination will be loaded here -->
+                    </ul>
+                </nav>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Complete functionality for order form
@@ -647,7 +718,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const mileageInput = document.getElementById('car-mileage');
         if (mileageInput) {
-            mileageInput.value = carData.mileage || '';
+            // Set current mileage from car data
+            mileageInput.value = carData.current_mileage || '';
         }
         
         // Fill client information if available
@@ -751,6 +823,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize sklad modal
     initializeSkladModal();
     
+    // Initialize car modal
+    initializeCarModal();
+    
     // Initialize form interactions
     initializeFormInteractions();
     
@@ -759,6 +834,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fetch currency rate
     fetchCurrencyRate();
+    
+    // Initialize keyboard navigation
+    initializeKeyboardNavigation();
 });
 
 // Define calculation functions in global scope
@@ -937,6 +1015,7 @@ function checkFormValidity() {
     const hasCar = carField && carField.value.trim() !== '';
     const hasItems = itemField && itemField.value.trim() !== '';
 
+    // Employee is now optional, so we don't check for it
     const canComplete = hasClient && hasCar && hasItems;
     
     // Debug logging
@@ -1590,7 +1669,14 @@ function saveOrderAndPreview(type) {
                 showOrderPreview(data.order_id);
             }
         } else {
-            alert('Грешка при запазване на поръчката: ' + (data.error || 'Неизвестна грешка'));
+            let errorMessage = 'Грешка при запазване на поръчката: ' + (data.error || 'Неизвестна грешка');
+            if (data.form_errors) {
+                errorMessage += '\n\nДетайли за грешките:';
+                for (const field in data.form_errors) {
+                    errorMessage += '\n' + field + ': ' + data.form_errors[field].join(', ');
+                }
+            }
+            alert(errorMessage);
         }
     })
     .catch(error => {
@@ -1765,6 +1851,325 @@ document.getElementById('printOrderBtn').addEventListener('click', function() {
     `);
     printWindow.document.close();
     printWindow.print();
+});
+
+// Initialize car modal functionality
+function initializeCarModal() {
+    const carModal = new bootstrap.Modal(document.getElementById('carModal'));
+    let currentPage = 1;
+    let searchTimeout;
+    
+    // Car modal button
+    document.getElementById('carModalBtn').addEventListener('click', function() {
+        currentPage = 1;
+        loadCarData();
+        carModal.show();
+    });
+    
+    // Car search functionality
+    const searchInput = document.getElementById('carSearch');
+    const clearBtn = document.getElementById('carClearBtn');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                currentPage = 1;
+                loadCarData();
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                loadCarData();
+            }, 300);
+        });
+    }
+    
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            currentPage = 1;
+            loadCarData();
+        });
+    }
+    
+    function loadCarData() {
+        const searchQuery = searchInput.value.trim();
+        
+        const params = new URLSearchParams({
+            page: currentPage
+        });
+        
+        if (searchQuery) {
+            params.append('search', searchQuery);
+        }
+        
+        fetch(`/poruchki/car-modal-data/?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                displayCars(data.cars);
+                displayCarPagination(data.pagination);
+            })
+            .catch(error => console.error('Car data error:', error));
+    }
+    
+    function displayCars(cars) {
+        const tbody = document.getElementById('carTableBody');
+        tbody.innerHTML = '';
+        
+        if (cars.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Няма намерени коли</td></tr>';
+            return;
+        }
+        
+        cars.forEach(car => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${car.brand_model || '-'}</td>
+                <td>${car.vin || '-'}</td>
+                <td>${car.plate_number || '-'}</td>
+                <td>${car.current_mileage ? car.current_mileage.toLocaleString() + ' км' : '-'}</td>
+                <td>${car.client_name || '-'}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-primary select-car" 
+                            data-car='${JSON.stringify(car)}'>
+                        <i class="fas fa-check me-1"></i>Избери
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    function displayCarPagination(pagination) {
+        const paginationList = document.getElementById('carPaginationList');
+        paginationList.innerHTML = '';
+        
+        if (pagination.total_pages <= 1) {
+            return;
+        }
+        
+        const currentPage = pagination.current_page;
+        const totalPages = pagination.total_pages;
+        const maxVisiblePages = 7;
+        
+        // Previous button
+        if (pagination.has_previous) {
+            const prevLi = document.createElement('li');
+            prevLi.className = 'page-item';
+            prevLi.innerHTML = `<a class="page-link" href="#" data-page="${pagination.previous_page}">Предишна</a>`;
+            paginationList.appendChild(prevLi);
+        }
+        
+        // Calculate which pages to show
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // First page and ellipsis
+        if (startPage > 1) {
+            const firstLi = document.createElement('li');
+            firstLi.className = 'page-item';
+            firstLi.innerHTML = `<a class="page-link" href="#" data-page="1">1</a>`;
+            paginationList.appendChild(firstLi);
+            
+            if (startPage > 2) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+        }
+        
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const pageLi = document.createElement('li');
+            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+            paginationList.appendChild(pageLi);
+        }
+        
+        // Last page and ellipsis
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+            
+            const lastLi = document.createElement('li');
+            lastLi.className = 'page-item';
+            lastLi.innerHTML = `<a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a>`;
+            paginationList.appendChild(lastLi);
+        }
+        
+        // Next button
+        if (pagination.has_next) {
+            const nextLi = document.createElement('li');
+            nextLi.className = 'page-item';
+            nextLi.innerHTML = `<a class="page-link" href="#" data-page="${pagination.next_page}">Следваща</a>`;
+            paginationList.appendChild(nextLi);
+        }
+        
+        // Add click handlers for pagination
+        const existingHandler = paginationList.getAttribute('data-handler-attached');
+        if (!existingHandler) {
+            paginationList.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (e.target.matches('.page-link')) {
+                    currentPage = parseInt(e.target.dataset.page);
+                    loadCarData();
+                }
+            });
+            paginationList.setAttribute('data-handler-attached', 'true');
+        }
+    }
+    
+    // Handle car selection
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.select-car')) {
+            const carData = JSON.parse(e.target.dataset.car);
+            selectCar(carData);
+            carModal.hide();
+        }
+    });
+    
+    function selectCar(carData) {
+        // Update hidden input
+        document.getElementById('carIdInput').value = carData.id;
+        
+        // Update search input display
+        document.getElementById('carSearchInput').value = `${carData.brand_model || ''} - ${carData.plate_number || ''}`.trim();
+        
+        // Fill car fields
+        const brandModelInput = document.getElementById('car-brand-model');
+        if (brandModelInput) {
+            brandModelInput.value = carData.brand_model || '';
+        }
+        
+        const vinInput = document.getElementById('car-vin');
+        if (vinInput) {
+            vinInput.value = carData.vin || '';
+        }
+        
+        const plateInput = document.getElementById('car-plate-number');
+        if (plateInput) {
+            plateInput.value = carData.plate_number || '';
+        }
+        
+        const mileageInput = document.getElementById('car-mileage');
+        if (mileageInput) {
+            // Set current mileage from car data
+            mileageInput.value = carData.current_mileage || '';
+        }
+        
+        // Fill client information if available
+        if (carData.client_id) {
+            const clientSelect = document.getElementById('client-select');
+            if (clientSelect) {
+                clientSelect.value = carData.client_id;
+            }
+            
+            const clientNameInput = document.getElementById('client-name');
+            if (clientNameInput) {
+                clientNameInput.value = carData.client_name || '';
+            }
+            
+            const clientAddressInput = document.getElementById('client-address');
+            if (clientAddressInput) {
+                clientAddressInput.value = carData.client_address || '';
+            }
+            
+            const clientPhoneInput = document.getElementById('client-phone');
+            if (clientPhoneInput) {
+                clientPhoneInput.value = carData.client_phone || '';
+            }
+        }
+        
+        // Re-check form validity
+        checkFormValidity();
+    }
+}
+
+// Initialize keyboard navigation for table
+function initializeKeyboardNavigation() {
+    // Add Enter/Return key navigation for table inputs
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === 'Return') {
+            const activeElement = document.activeElement;
+            
+            // Check if we're in a table input
+            if (activeElement && activeElement.closest('#itemsTableBody')) {
+                e.preventDefault();
+                
+                const currentRow = activeElement.closest('tr');
+                const currentInput = activeElement;
+                
+                // Get all inputs in the current row
+                const inputs = currentRow.querySelectorAll('input, select');
+                const currentIndex = Array.from(inputs).indexOf(currentInput);
+                
+                if (currentIndex < inputs.length - 1) {
+                    // Move to next input in same row
+                    inputs[currentIndex + 1].focus();
+                } else {
+                    // Move to first input of next row
+                    const nextRow = currentRow.nextElementSibling;
+                    if (nextRow && nextRow.classList.contains('item-row')) {
+                        const nextInputs = nextRow.querySelectorAll('input, select');
+                        if (nextInputs.length > 0) {
+                            nextInputs[0].focus();
+                        }
+                    } else {
+                        // If no next row, add a new row
+                        addNewItemRow();
+                        // Focus the first input of the new row
+                        setTimeout(() => {
+                            const newRow = document.querySelector('#itemsTableBody tr:last-child');
+                            if (newRow) {
+                                const newInputs = newRow.querySelectorAll('input, select');
+                                if (newInputs.length > 0) {
+                                    newInputs[0].focus();
+                                }
+                            }
+                        }, 100);
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Clear employee selection
+document.addEventListener('DOMContentLoaded', function() {
+    const clearBtn = document.getElementById('clearEmployeeBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            console.log('Clear button clicked');
+            const employeeSelect = document.getElementById('employees-select');
+            console.log('Employee select found:', employeeSelect);
+            
+            if (employeeSelect) {
+                // Clear all selected options in a multiple select
+                for (let i = 0; i < employeeSelect.options.length; i++) {
+                    employeeSelect.options[i].selected = false;
+                }
+                console.log('All employees cleared');
+            } else {
+                console.error('Employee select element not found');
+            }
+        });
+    } else {
+        console.error('Clear button not found');
+    }
 });
 </script>
 </body>

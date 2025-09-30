@@ -400,17 +400,21 @@ def pregled_poruchki(request):
     from django.db.models import Q
     from django.core.paginator import Paginator
     
-    # Get all orders ordered by most recent first
-    orders = Order.objects.all().order_by('-order_date', '-created_at')
+    # Get all orders with optimized queries (PERFORMANCE FIX!)
+    # Use select_related for FK lookups and prefetch_related for order_items
+    orders = Order.objects.select_related('client', 'car').prefetch_related('order_items').order_by('-order_date', '-created_at')
     
     # Search functionality with smart VIN logic
     search_query = request.GET.get('search', '').strip()
     if search_query:
         # Always search by order number, client name, car details, and notes
+        # Also search in related client table
         search_conditions = (
             Q(order_number__icontains=search_query) |
             Q(client_name__icontains=search_query) |
+            Q(client__customer_name__icontains=search_query) |
             Q(car_brand_model__icontains=search_query) |
+            Q(car__brand_model__icontains=search_query) |
             Q(car_plate_number__icontains=search_query) |
             Q(notes__icontains=search_query)
         )
@@ -451,16 +455,20 @@ def pregled_poruchki(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Get statistics
+    # Get statistics (optimized with single query per stat)
     total_orders = Order.objects.count()
     pending_orders = Order.objects.filter(status='offer').count()
     completed_orders = Order.objects.filter(status='invoice').count()
     in_progress_orders = 0  # Not used anymore
     
-    # Calculate total revenue by summing all order items with VAT
-    total_revenue = 0
-    for order in Order.objects.all():
-        total_revenue += float(order.total_with_vat)
+    # Calculate total revenue using aggregation (MUCH faster than looping!)
+    # This sums all order item prices in a single database query
+    from django.db.models import Sum, DecimalField
+    from django.db.models.functions import Coalesce
+    revenue_data = OrderItem.objects.aggregate(
+        total=Coalesce(Sum('price_with_vat'), 0, output_field=DecimalField())
+    )
+    total_revenue = float(revenue_data['total'])
     
     context = {
         'orders': page_obj,
@@ -489,16 +497,19 @@ def order_search_ajax(request):
     date_to = request.GET.get('date_to', '').strip()
     page = int(request.GET.get('page', 1))
     
-    # Start with all orders ordered by most recent first
-    orders = Order.objects.all().order_by('-order_date', '-created_at')
+    # Start with all orders with optimized queries (PERFORMANCE FIX!)
+    orders = Order.objects.select_related('client', 'car').prefetch_related('order_items').order_by('-order_date', '-created_at')
     
     # Apply search with smart VIN logic
     if search_query:
         # Always search by order number, client name, car details, and notes
+        # Also search in related client table
         search_conditions = (
             Q(order_number__icontains=search_query) |
             Q(client_name__icontains=search_query) |
+            Q(client__customer_name__icontains=search_query) |
             Q(car_brand_model__icontains=search_query) |
+            Q(car__brand_model__icontains=search_query) |
             Q(car_plate_number__icontains=search_query) |
             Q(notes__icontains=search_query)
         )
@@ -539,10 +550,13 @@ def order_search_ajax(request):
     pending_orders = Order.objects.filter(status='offer').count()
     completed_orders = Order.objects.filter(status='invoice').count()
     
-    # Calculate total revenue
-    total_revenue = 0
-    for order in Order.objects.all():
-        total_revenue += float(order.total_with_vat)
+    # Calculate total revenue using aggregation (MUCH faster!)
+    from django.db.models import Sum, DecimalField
+    from django.db.models.functions import Coalesce
+    revenue_data = OrderItem.objects.aggregate(
+        total=Coalesce(Sum('price_with_vat'), 0, output_field=DecimalField())
+    )
+    total_revenue = float(revenue_data['total'])
     
     # Render table and pagination
     table_html = render_to_string('dashboard/order_table.html', {
@@ -2065,9 +2079,17 @@ def order_create(request):
                 
             order.save()
             
+            # Update car's current mileage if provided
+            if order.car and order.car_mileage:
+                order.car.current_mileage = order.car_mileage
+                order.car.save()
+            
             # Save employees (many-to-many relationship)
-            if 'employees' in form.cleaned_data:
+            if 'employees' in form.cleaned_data and form.cleaned_data['employees']:
                 order.employees.set(form.cleaned_data['employees'])
+            else:
+                # Clear employees if none selected
+                order.employees.clear()
             
             # Save order items
             item_formset.instance = order
@@ -2161,7 +2183,7 @@ def order_create(request):
                 return generate_offer_pdf(order)
         else:
             # Handle form errors for AJAX requests
-            if request.headers.get('Content-Type') == 'application/json':
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': False,
                     'error': 'Грешка при валидация на формата',
@@ -2436,6 +2458,62 @@ def order_get_car_info(request):
         return JsonResponse({'success': False, 'message': 'Кола не е намерена'})
 
 
+def order_car_modal_data(request):
+    """Get paginated car data for car selection modal"""
+    search_query = request.GET.get('search', '').strip()
+    page = int(request.GET.get('page', 1))
+    per_page = 20
+    
+    # Get all active cars with customer info
+    cars = Car.objects.filter(is_active=True).select_related('customer').order_by('brand_model', 'plate_number')
+    
+    # Apply search filter
+    if search_query:
+        cars = cars.filter(
+            Q(brand_model__icontains=search_query) |
+            Q(vin__icontains=search_query) |
+            Q(plate_number__icontains=search_query) |
+            Q(customer__customer_name__icontains=search_query)
+        )
+    
+    # Paginate results
+    paginator = Paginator(cars, per_page)
+    page_obj = paginator.get_page(page)
+    
+    # Prepare car data
+    car_data = []
+    for car in page_obj:
+        car_data.append({
+            'id': car.id,
+            'brand_model': car.brand_model,
+            'vin': car.vin,
+            'plate_number': car.plate_number,
+            'year': car.year,
+            'color': car.color,
+            'engine_number': car.engine_number,
+            'current_mileage': car.current_mileage,
+            'client_id': car.customer.id if car.customer else None,
+            'client_name': car.customer.customer_name if car.customer else None,
+            'client_address': car.customer.full_address if car.customer else None,
+            'client_phone': car.customer.telno if car.customer else None,
+        })
+    
+    # Prepare pagination data
+    pagination_data = {
+        'current_page': page_obj.number,
+        'total_pages': paginator.num_pages,
+        'has_previous': page_obj.has_previous(),
+        'has_next': page_obj.has_next(),
+        'previous_page': page_obj.previous_page_number() if page_obj.has_previous() else None,
+        'next_page': page_obj.next_page_number() if page_obj.has_next() else None,
+    }
+    
+    return JsonResponse({
+        'cars': car_data,
+        'pagination': pagination_data
+    })
+
+
 def order_get_client_info(request):
     """Get client information by client ID"""
     client_id = request.GET.get('client_id', '').strip()
@@ -2553,42 +2631,70 @@ def order_preview_order(request, pk):
 
 
 def order_convert_to_invoice(request, pk):
-    """Convert offer to invoice"""
+    """Convert order to invoice"""
     order = get_object_or_404(Order, pk=pk)
     
     if request.method == 'POST':
-        # Change status from offer to invoice
-        order.status = 'invoice'
-        order.save()
-        
-        # Create invoice record
-        from .models import Invoice
-        from datetime import timedelta
-        
-        # Check if invoice already exists
-        if not hasattr(order, 'invoice'):
-            invoice = Invoice.objects.create(
-                order=order,
-                invoice_date=order.order_date or timezone.now().date(),
-                due_date=(order.order_date or timezone.now().date()) + timedelta(days=30),
-                client_name=order.client_name or '',
-                client_address=order.client_address or '',
-                client_phone=order.client_phone or '',
-                client_tax_number='',  # Order doesn't have tax number field
-                car_brand_model=order.car_brand_model or '',
-                car_plate_number=order.car_plate_number or '',
-                car_vin=order.car_vin or '',
-                subtotal=float(order.total_without_vat),
-                vat_amount=float(order.total_with_vat) - float(order.total_without_vat),
-                total_amount=float(order.total_with_vat),
-                status='sent',
-                notes=order.notes or ''
-            )
-            messages.success(request, f'Поръчка {order.order_number} е конвертирана в фактура {invoice.invoice_number} успешно!')
-        else:
-            messages.info(request, f'Поръчка {order.order_number} вече има създадена фактура!')
-        
-        return redirect('pregled_poruchki')
+        try:
+            # Change status from order to invoice
+            order.status = 'invoice'
+            order.save()
+            
+            # Create invoice record
+            from .models import Invoice
+            from datetime import timedelta
+            
+            # Check if invoice already exists
+            if not hasattr(order, 'invoice'):
+                invoice = Invoice.objects.create(
+                    order=order,
+                    invoice_date=order.order_date or timezone.now().date(),
+                    due_date=(order.order_date or timezone.now().date()) + timedelta(days=30),
+                    client_name=order.client_name or '',
+                    client_address=order.client_address or '',
+                    client_phone=order.client_phone or '',
+                    client_tax_number='',  # Order doesn't have tax number field
+                    car_brand_model=order.car_brand_model or '',
+                    car_plate_number=order.car_plate_number or '',
+                    car_vin=order.car_vin or '',
+                    subtotal=float(order.total_without_vat),
+                    vat_amount=float(order.total_with_vat) - float(order.total_without_vat),
+                    total_amount=float(order.total_with_vat),
+                    status='sent',
+                    notes=order.notes or ''
+                )
+                
+                # Handle AJAX requests
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Поръчка {order.order_number} е конвертирана в фактура {invoice.invoice_number} успешно!',
+                        'invoice_number': invoice.invoice_number
+                    })
+                else:
+                    messages.success(request, f'Поръчка {order.order_number} е конвертирана в фактура {invoice.invoice_number} успешно!')
+            else:
+                # Handle AJAX requests
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Поръчка {order.order_number} вече има създадена фактура!'
+                    })
+                else:
+                    messages.info(request, f'Поръчка {order.order_number} вече има създадена фактура!')
+            
+            return redirect('pregled_poruchki')
+            
+        except Exception as e:
+            # Handle AJAX requests
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Грешка при конвертиране на поръчката: {str(e)}'
+                })
+            else:
+                messages.error(request, f'Грешка при конвертиране на поръчката: {str(e)}')
+                return redirect('pregled_poruchki')
     
     return render(request, 'dashboard/order_convert_to_invoice.html', {
         'order': order

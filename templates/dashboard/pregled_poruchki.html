@@ -300,6 +300,34 @@
         </div>
     </div>
 
+    <!-- Order Preview Modal -->
+    <div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderModalLabel">Преглед на поръчка</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="orderModalBody">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Зареждане...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+                    <button type="button" class="btn btn-info" id="printOrderBtn">
+                        <i class="fas fa-print me-1"></i>Печат
+                    </button>
+                    <button type="button" class="btn btn-success" id="convertOrderToInvoiceBtn">
+                        <i class="fas fa-file-invoice me-1"></i>Генерирай Фактура
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Handle offer modal
@@ -403,9 +431,20 @@
             const button = event.relatedTarget;
             currentOrderId = button.getAttribute('data-order-id');
             const orderNumber = button.getAttribute('data-order-number');
+            const orderStatus = button.getAttribute('data-order-status');
             
-            // Update modal title
-            document.getElementById('invoiceModalLabel').textContent = `Преглед на фактура - ${orderNumber}`;
+            // Update modal title - check if it's an order or offer based on status
+            const isOrder = orderStatus === 'order';
+            const title = isOrder ? `Генерирай Фактура - ${orderNumber}` : `Преглед на фактура - ${orderNumber}`;
+            document.getElementById('invoiceModalLabel').textContent = title;
+            
+            // Update convert button text based on whether it's an order or offer
+            const convertBtn = document.getElementById('convertToInvoiceBtn');
+            if (convertBtn) {
+                convertBtn.innerHTML = isOrder ? 
+                    '<i class="fas fa-check me-1"></i>Завърши Поръчка' : 
+                    '<i class="fas fa-check me-1"></i>Завърши Оферта';
+            }
             
             // Load invoice preview
             loadInvoicePreview(currentOrderId);
@@ -426,7 +465,14 @@
 
         convertToInvoiceBtn.addEventListener('click', function() {
             if (currentOrderId) {
-                if (confirm('Сигурни ли сте, че искате да конвертирате тази оферта във фактура?')) {
+                // Get the order status from the button that opened the modal
+                const orderStatus = document.querySelector(`[data-order-id="${currentOrderId}"][data-bs-target="#invoiceModal"]`)?.getAttribute('data-order-status');
+                const isOrder = orderStatus === 'order';
+                const confirmMessage = isOrder ? 
+                    'Сигурни ли сте, че искате да конвертирате тази поръчка във фактура?' : 
+                    'Сигурни ли сте, че искате да конвертирате тази оферта във фактура?';
+                
+                if (confirm(confirmMessage)) {
                     fetch(`/poruchki/${currentOrderId}/convert-to-invoice/`, {
                         method: 'POST',
                         headers: {
@@ -439,11 +485,17 @@
                         if (response.ok) {
                             location.reload();
                         } else {
-                            alert('Грешка при конвертиране на офертата.');
+                            const errorMessage = isOrder ? 
+                                'Грешка при конвертиране на поръчката.' : 
+                                'Грешка при конвертиране на офертата.';
+                            alert(errorMessage);
                         }
                     })
                     .catch(error => {
-                        alert('Грешка при конвертиране на офертата.');
+                        const errorMessage = isOrder ? 
+                            'Грешка при конвертиране на поръчката.' : 
+                            'Грешка при конвертиране на офертата.';
+                        alert(errorMessage);
                     });
                 }
             }
@@ -500,7 +552,10 @@
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
                     <style>
                         @media print {
-                            body { margin: 0; }
+                            body { 
+                                margin: 0; 
+                                padding: 0;
+                            }
                             .no-print { display: none !important; }
                             .btn { display: none !important; }
                             .modal-footer { display: none !important; }
@@ -508,6 +563,17 @@
                             .container-fluid { padding: 0 !important; }
                             .row { margin: 0 !important; }
                             .col-12, .col-6 { padding: 0 !important; }
+                            @page {
+                                margin: 0.2in;
+                                size: A4;
+                            }
+                            /* Try to minimize browser print headers */
+                            @media print {
+                                * {
+                                    -webkit-print-color-adjust: exact !important;
+                                    color-adjust: exact !important;
+                                }
+                            }
                         }
                         .invoice-preview { padding: 20px; }
                         .text-success { color: #28a745 !important; }
@@ -533,8 +599,6 @@
             printWindow.onload = function() {
                 printWindow.print();
                 printWindow.close();
-                // Reload the page to reflect the status change
-                location.reload();
             };
         }
 
@@ -643,6 +707,119 @@
                 }
             });
         });
+
+        // Handle order modal
+        const orderModal = document.getElementById('orderModal');
+        const orderModalBody = document.getElementById('orderModalBody');
+        const printOrderBtn = document.getElementById('printOrderBtn');
+        const convertOrderToInvoiceBtn = document.getElementById('convertOrderToInvoiceBtn');
+
+        orderModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            currentOrderId = button.getAttribute('data-order-id');
+            const orderNumber = button.getAttribute('data-order-number');
+            
+            // Update modal title
+            document.getElementById('orderModalLabel').textContent = `Преглед на поръчка - ${orderNumber}`;
+            
+            // Load order preview
+            loadOrderPreview(currentOrderId);
+        });
+
+        function loadOrderPreview(orderId) {
+            orderModalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Зареждане...</span></div></div>';
+            
+            fetch(`/poruchki/${orderId}/preview-order/`)
+                .then(response => response.text())
+                .then(html => {
+                    orderModalBody.innerHTML = html;
+                })
+                .catch(error => {
+                    orderModalBody.innerHTML = '<div class="alert alert-danger">Грешка при зареждане на поръчката.</div>';
+                });
+        }
+
+        // Print order button
+        printOrderBtn.addEventListener('click', function() {
+            printOrderContent();
+        });
+
+        // Convert order to invoice button
+        convertOrderToInvoiceBtn.addEventListener('click', function() {
+            if (currentOrderId) {
+                if (confirm('Сигурни ли сте, че искате да конвертирате тази поръчка във фактура?')) {
+                    fetch(`/poruchki/${currentOrderId}/convert-to-invoice/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Поръчката беше успешно конвертирана във фактура!');
+                            // Close the order modal
+                            const orderModalInstance = bootstrap.Modal.getInstance(orderModal);
+                            orderModalInstance.hide();
+                            // Reload the page to show updated status
+                            location.reload();
+                        } else {
+                            alert('Грешка при конвертиране на поръчката във фактура: ' + (data.error || 'Неизвестна грешка'));
+                        }
+                    })
+                    .catch(error => {
+                        alert('Грешка при конвертиране на поръчката във фактура.');
+                    });
+                }
+            }
+        });
+
+        function printOrderContent() {
+            // Create a new window for printing
+            const printWindow = window.open('', '_blank');
+            const orderContent = document.getElementById('orderModalBody').innerHTML;
+            
+            // Create a print-friendly HTML document
+            const printHTML = `
+                <!DOCTYPE html>
+                <html lang="bg">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Печат на поръчка</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <style>
+                        @media print {
+                            body { 
+                                margin: 0; 
+                                padding: 0;
+                            }
+                            .no-print { display: none !important; }
+                            @page {
+                                margin: 0.2in;
+                                size: A4;
+                            }
+                            /* Try to minimize browser print headers */
+                            @media print {
+                                * {
+                                    -webkit-print-color-adjust: exact !important;
+                                    color-adjust: exact !important;
+                                }
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${orderContent}
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(printHTML);
+            printWindow.document.close();
+            printWindow.print();
+        }
     </script>
 </body>
 </html>

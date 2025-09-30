@@ -7,6 +7,13 @@ class Customer(models.Model):
     
     # Basic customer information
     number = models.IntegerField(unique=True, verbose_name="Номер")
+    temp_id = models.IntegerField(
+        blank=True, 
+        null=True, 
+        unique=True,
+        verbose_name="Временен ID",
+        help_text="Оригинален Customer-ID от старата система за мапинг на поръчки"
+    )
     
     # Customer details (multiple Customer fields from the structure)
     customer_name = models.CharField(max_length=255, verbose_name="Име на клиент")
@@ -145,6 +152,14 @@ class Car(models.Model):
         blank=True, 
         null=True, 
         verbose_name="Номер на двигател"
+    )
+    
+    # Current mileage
+    current_mileage = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        verbose_name="Текущ пробег",
+        help_text="Последен записан пробег на колата"
     )
     
     # Status

@@ -13,25 +13,105 @@
             <div class="cars-display">
                 {% for car in customer.cars.all|slice:":3" %}
                     <div class="car-item">
-                        <span class="badge {% if car.is_active %}bg-success{% else %}bg-secondary{% endif %}" 
-                              title="{% if car.plate_number %}Номер: {{ car.plate_number }}{% endif %}{% if car.brand_model %}&#10;Модел: {{ car.brand_model }}{% endif %}{% if car.year %}&#10;Година: {{ car.year }}{% endif %}{% if car.color %}&#10;Цвят: {{ car.color }}{% endif %}{% if car.vin %}&#10;VIN: {{ car.vin }}{% endif %}"
-                              data-bs-toggle="tooltip" data-bs-placement="top">
-                            <i class="fas fa-car me-1"></i>
-                            {% if car.plate_number %}
-                                {{ car.plate_number }}
-                            {% else %}
-                                {{ car.brand_model|default:"Кола"|truncatechars:6 }}
-                            {% endif %}
-                        </span>
+                        <a href="{% url 'car_orders' car.pk %}" class="text-decoration-none">
+                            <span class="badge {% if car.is_active %}bg-success{% else %}bg-secondary{% endif %} car-badge-hover" 
+                                  title="{% if car.plate_number %}Номер: {{ car.plate_number }}{% endif %}{% if car.brand_model %}&#10;Модел: {{ car.brand_model }}{% endif %}{% if car.year %}&#10;Година: {{ car.year }}{% endif %}{% if car.color %}&#10;Цвят: {{ car.color }}{% endif %}{% if car.vin %}&#10;VIN: {{ car.vin }}{% endif %}&#10;&#10;Кликнете за преглед на поръчките"
+                                  data-bs-toggle="tooltip" data-bs-placement="top">
+                                <i class="fas fa-car me-1"></i>
+                                {% if car.plate_number %}
+                                    {{ car.plate_number }}
+                                {% else %}
+                                    {{ car.brand_model|default:"Кола"|truncatechars:6 }}
+                                {% endif %}
+                            </span>
+                        </a>
                     </div>
                 {% endfor %}
                 {% if customer.cars.count > 3 %}
                     <div class="car-item">
-                        <span class="badge bg-info" 
-                              title="{% for car in customer.cars.all|slice:'3:' %}{% if car.plate_number %}{{ car.plate_number }}{% else %}{{ car.brand_model|default:'Кола' }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}"
-                              data-bs-toggle="tooltip" data-bs-placement="top">
+                        <span class="badge bg-info car-badge-hover" 
+                              style="cursor: pointer;"
+                              data-bs-toggle="modal" 
+                              data-bs-target="#carsModal{{ customer.id }}"
+                              title="Кликнете за преглед на всички коли">
                             <i class="fas fa-plus me-1"></i>+{{ customer.cars.count|add:"-3" }}
                         </span>
+                    </div>
+                    
+                    <!-- Modal for all cars -->
+                    <div class="modal fade" id="carsModal{{ customer.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-car me-2"></i>Всички коли на {{ customer.customer_name }}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        {% for car in customer.cars.all %}
+                                        <div class="col-md-6 mb-3">
+                                            <a href="{% url 'car_orders' car.pk %}" class="text-decoration-none" data-bs-dismiss="modal">
+                                                <div class="card border car-box-hover">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title">
+                                                            <i class="fas fa-car me-2"></i>{{ car.brand_model }}
+                                                            {% if car.is_active %}
+                                                                <span class="badge bg-success ms-2">Активна</span>
+                                                            {% else %}
+                                                                <span class="badge bg-secondary ms-2">Неактивна</span>
+                                                            {% endif %}
+                                                        </h6>
+                                                        <div class="row mt-2">
+                                                            {% if car.plate_number %}
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">Рег. номер:</small><br>
+                                                                    <strong>{{ car.plate_number }}</strong>
+                                                                </div>
+                                                            {% endif %}
+                                                            {% if car.vin %}
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">VIN:</small><br>
+                                                                    <strong>{{ car.vin|truncatechars:15 }}</strong>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                        {% if car.year or car.color %}
+                                                        <div class="row mt-2">
+                                                            {% if car.year %}
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">Година:</small><br>
+                                                                    <strong>{{ car.year }}</strong>
+                                                                </div>
+                                                            {% endif %}
+                                                            {% if car.color %}
+                                                                <div class="col-6">
+                                                                    <small class="text-muted">Цвят:</small><br>
+                                                                    <strong>{{ car.color }}</strong>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                        {% endif %}
+                                                        <div class="text-end mt-2">
+                                                            <small class="text-primary">
+                                                                <i class="fas fa-arrow-right me-1"></i>Виж поръчки
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-1"></i>Затвори
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 {% endif %}
             </div>

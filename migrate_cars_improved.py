@@ -52,8 +52,24 @@ def analyze_data():
     
     return car_df, customer_df, matching_ids
 
+def get_latest_mileage(car_group):
+    """Get the latest mileage for a car from its records"""
+    # Filter out invalid mileage values
+    valid_mileage = car_group[
+        (car_group['totkm'].notna()) & 
+        (car_group['totkm'] != '') & 
+        (car_group['totkm'] != 'nan') &
+        (car_group['totkm'] > 0)
+    ]['totkm']
+    
+    if len(valid_mileage) > 0:
+        # Return the maximum mileage (latest)
+        return int(valid_mileage.max())
+    
+    return None
+
 def deduplicate_cars(car_df, matching_ids):
-    """Deduplicate cars by customer and VIN/plate number"""
+    """Deduplicate cars by customer and VIN/plate number, including latest mileage"""
     print("\n🔄 DEDUPLICATING CARS")
     print("=" * 30)
     
@@ -87,11 +103,16 @@ def deduplicate_cars(car_df, matching_ids):
             if vin and vin != 'nan' and vin != '':
                 # Take the first record with this VIN
                 car_record = vin_group.iloc[0]
+                
+                # Calculate latest mileage for this car
+                latest_mileage = get_latest_mileage(vin_group)
+                
                 unique_cars.append({
                     'customer_id': int(customer_id),
                     'brand_model': car_record['Car'],
                     'plate_number': car_record['DKNo'],
                     'vin': vin,
+                    'current_mileage': latest_mileage,
                     'record_count': len(vin_group)
                 })
         
@@ -109,11 +130,16 @@ def deduplicate_cars(car_df, matching_ids):
                 if plate and plate != 'nan' and plate != '':
                     # Take the first record with this plate
                     car_record = plate_group.iloc[0]
+                    
+                    # Calculate latest mileage for this car
+                    latest_mileage = get_latest_mileage(plate_group)
+                    
                     unique_cars.append({
                         'customer_id': int(customer_id),
                         'brand_model': car_record['Car'],
                         'plate_number': plate,
                         'vin': '',
+                        'current_mileage': latest_mileage,
                         'record_count': len(plate_group)
                     })
     
@@ -122,8 +148,10 @@ def deduplicate_cars(car_df, matching_ids):
     # Show statistics
     with_vin = len([c for c in unique_cars if c['vin']])
     with_plate = len([c for c in unique_cars if c['plate_number']])
+    with_mileage = len([c for c in unique_cars if c['current_mileage'] is not None])
     print(f"   Cars with VIN: {with_vin}")
     print(f"   Cars with plate: {with_plate}")
+    print(f"   Cars with mileage: {with_mileage}")
     
     return unique_cars
 
@@ -179,7 +207,13 @@ def migrate_cars(unique_cars, customer_df):
                 ).first()
             
             if existing_car:
-                stats['skipped'] += 1
+                # Update existing car with mileage data if we have it
+                if car_data['current_mileage'] and existing_car.current_mileage != car_data['current_mileage']:
+                    existing_car.current_mileage = car_data['current_mileage']
+                    existing_car.save()
+                    stats['updated'] = stats.get('updated', 0) + 1
+                else:
+                    stats['skipped'] += 1
                 continue
             
             # Create new car
@@ -191,6 +225,7 @@ def migrate_cars(unique_cars, customer_df):
                 year=None,
                 color='',
                 engine_number='',
+                current_mileage=car_data['current_mileage'],
                 is_active=True,
             )
             
@@ -199,7 +234,8 @@ def migrate_cars(unique_cars, customer_df):
             
             # Progress update
             if stats['processed'] % 1000 == 0:
-                print(f"   Processed: {stats['processed']}, Created: {stats['created']}")
+                updated_count = stats.get('updated', 0)
+                print(f"   Processed: {stats['processed']}, Created: {stats['created']}, Updated: {updated_count}")
                 
         except Exception as e:
             stats['errors'] += 1
@@ -215,13 +251,15 @@ def generate_report(stats, unique_cars):
     
     print(f"✅ Unique cars processed: {stats['processed']}")
     print(f"✅ Cars created: {stats['created']}")
+    print(f"🔄 Cars updated: {stats.get('updated', 0)}")
     print(f"⚠️  Cars skipped: {stats['skipped']}")
     print(f"❌ Errors: {stats['errors']}")
     print(f"👥 Customers with cars: {len(stats['customers_with_cars'])}")
     
     # Calculate percentages
     if stats['processed'] > 0:
-        success_rate = (stats['created'] / stats['processed']) * 100
+        total_processed = stats['created'] + stats.get('updated', 0)
+        success_rate = (total_processed / stats['processed']) * 100
         print(f"📈 Success rate: {success_rate:.1f}%")
     
     # Show some examples

@@ -20,9 +20,10 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .car-item .badge:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        .car-item .badge:hover,
+        .car-badge-hover:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .cars-display .text-muted {
             font-size: 0.7rem;
@@ -31,6 +32,18 @@
         }
         .table td {
             vertical-align: middle;
+        }
+        .car-box-hover {
+            transition: all 0.3s ease;
+        }
+        .car-box-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: #0d6efd !important;
+        }
+        .modal-body .row {
+            max-height: 60vh;
+            overflow-y: auto;
         }
     </style>
 </head>
