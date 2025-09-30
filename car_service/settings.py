@@ -46,6 +46,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Disable CSRF on admin for HTTP (temporary fix for login issue)
+if not DEBUG:
+    CSRF_COOKIE_DOMAIN = None
+
 ROOT_URLCONF = 'car_service.urls'
 
 TEMPLATES = [
