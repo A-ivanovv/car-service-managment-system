@@ -486,6 +486,7 @@ def pregled_poruchki(request):
     
     return render(request, 'dashboard/pregled_poruchki.html', context)
 
+@csrf_exempt
 def order_search_ajax(request):
     """AJAX endpoint for order search with smart VIN logic"""
     from django.template.loader import render_to_string
@@ -2047,6 +2048,7 @@ def sklad_import_bulk_delete(request):
 
 
 # Order Views
+@csrf_exempt
 def order_create(request):
     """Create new order with items"""
     if request.method == 'POST':
@@ -2216,6 +2218,7 @@ def order_generate_invoice(request, pk):
     return generate_invoice_pdf(order)
 
 
+@csrf_exempt
 def order_edit(request, pk):
     """Edit existing order with items"""
     order = get_object_or_404(Order, pk=pk)
@@ -2272,6 +2275,7 @@ def order_edit(request, pk):
     })
 
 
+@csrf_exempt
 def order_delete(request, pk):
     """Delete order"""
     order = get_object_or_404(Order, pk=pk)
@@ -2308,6 +2312,7 @@ def order_detail(request, pk):
 
 
 # Autocomplete views for orders
+@csrf_exempt
 def order_autocomplete_car_vin(request):
     """API endpoint for car VIN autocomplete"""
     query = request.GET.get('q', '').strip()
@@ -2335,6 +2340,7 @@ def order_autocomplete_car_vin(request):
     return JsonResponse({'suggestions': suggestions})
 
 
+@csrf_exempt
 def order_autocomplete_car_plate(request):
     """API endpoint for car plate number autocomplete"""
     query = request.GET.get('q', '').strip()
@@ -2362,6 +2368,7 @@ def order_autocomplete_car_plate(request):
     return JsonResponse({'suggestions': suggestions})
 
 
+@csrf_exempt
 def order_autocomplete_client(request):
     """API endpoint for client autocomplete"""
     query = request.GET.get('q', '').strip()
@@ -2388,6 +2395,7 @@ def order_autocomplete_client(request):
     return JsonResponse({'suggestions': suggestions})
 
 
+@csrf_exempt
 def order_autocomplete_sklad(request):
     """API endpoint for sklad autocomplete for order items"""
     query = request.GET.get('q', '').strip()
@@ -2421,6 +2429,7 @@ def order_autocomplete_sklad(request):
     return JsonResponse({'suggestions': suggestions})
 
 
+@csrf_exempt
 def order_get_car_info(request):
     """Get car information by VIN, plate number, or car ID"""
     vin = request.GET.get('vin', '').strip()
@@ -2458,6 +2467,7 @@ def order_get_car_info(request):
         return JsonResponse({'success': False, 'message': 'Кола не е намерена'})
 
 
+@csrf_exempt
 def order_car_modal_data(request):
     """Get paginated car data for car selection modal"""
     search_query = request.GET.get('search', '').strip()
@@ -2514,6 +2524,7 @@ def order_car_modal_data(request):
     })
 
 
+@csrf_exempt
 def order_get_client_info(request):
     """Get client information by client ID"""
     client_id = request.GET.get('client_id', '').strip()
@@ -2593,6 +2604,7 @@ def order_sklad_modal_data(request):
     })
 
 
+@csrf_exempt
 def order_sklad_units(request):
     """Get available units for the sklad modal filter"""
     units = Sklad.objects.filter(is_active=True).values_list('unit', flat=True).distinct().order_by('unit')
@@ -2632,6 +2644,7 @@ def order_preview_order(request, pk):
     })
 
 
+@csrf_exempt
 def order_convert_to_invoice(request, pk):
     """Convert order to invoice"""
     order = get_object_or_404(Order, pk=pk)
