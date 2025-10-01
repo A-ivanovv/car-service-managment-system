@@ -1,40 +1,38 @@
 #!/bin/bash
+# Daily PostgreSQL Backup Script
+# Usage: Add to crontab with: 0 2 * * * /var/www/car-service-managment-system/backup-db.sh >> /var/log/db-backup.log 2>&1
 
-# Database Backup Script for Car Service Management System
-# Run this script to create a database dump
+BACKUP_DIR="/var/www/car-service-managment-system/container/pg_dump/backups"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="backup_${TIMESTAMP}.sql"
+RETENTION_DAYS=30
 
-set -e
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Configuration
-PROJECT_DIR="/var/www/car-service-managment-system"
-BACKUP_DIR="/var/backups/car-service"
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="car_service_backup_$DATE.sql"
-
-# Create backup directory if it doesn't exist
-mkdir -p $BACKUP_DIR
-
-echo -e "${YELLOW}🗄️  Creating database backup...${NC}"
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
 
 # Navigate to project directory
-cd $PROJECT_DIR
+cd /var/www/car-service-managment-system || exit 1
 
-# Create database dump
-docker-compose -f production-docker-compose.yml exec -T db pg_dump -U car_service_user -d car_service_db > $BACKUP_DIR/$BACKUP_FILE
+# Create backup
+echo "[$(date)] Starting backup..."
+docker compose -f production-docker-compose.yml exec -T db pg_dump \
+    -U car_service_user \
+    -d car_service_db \
+    --clean \
+    --if-exists \
+    --no-owner \
+    --no-privileges > "${BACKUP_DIR}/${BACKUP_FILE}"
 
-# Compress the backup
-gzip $BACKUP_DIR/$BACKUP_FILE
-
-echo -e "${GREEN}✅ Database backup created: $BACKUP_DIR/$BACKUP_FILE.gz${NC}"
-
-# Keep only last 7 days of backups
-echo -e "${YELLOW}🧹 Cleaning old backups (keeping last 7 days)...${NC}"
-find $BACKUP_DIR -name "car_service_backup_*.sql.gz" -mtime +7 -delete
-
-echo -e "${GREEN}✅ Backup completed successfully!${NC}"
+# Compress
+if [ -s "${BACKUP_DIR}/${BACKUP_FILE}" ]; then
+    gzip "${BACKUP_DIR}/${BACKUP_FILE}"
+    echo "[$(date)] Backup completed: ${BACKUP_FILE}.gz ($(du -h "${BACKUP_DIR}/${BACKUP_FILE}.gz" | cut -f1))"
+    
+    # Clean old backups
+    find "$BACKUP_DIR" -name "backup_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+    echo "[$(date)] Cleanup completed. Total backups: $(find "$BACKUP_DIR" -name "backup_*.sql.gz" | wc -l)"
+else
+    echo "[$(date)] ERROR: Backup failed"
+    rm -f "${BACKUP_DIR}/${BACKUP_FILE}"
+    exit 1
+fi

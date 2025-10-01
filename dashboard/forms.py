@@ -773,6 +773,9 @@ class OrderItemForm(forms.ModelForm):
         self.fields['purchase_price'].required = True
         self.fields['quantity'].required = True
         
+        # Article number is optional (for services/labor)
+        self.fields['article_number'].required = False
+        
         # Populate unit choices from database
         from .models import Sklad
         units = Sklad.objects.values_list('unit', flat=True).distinct().order_by('unit')
@@ -781,13 +784,11 @@ class OrderItemForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        sklad_item = cleaned_data.get('sklad_item')
-        article_number = cleaned_data.get('article_number')
         name = cleaned_data.get('name')
         
-        # Validate that either sklad_item is selected or standalone info is provided
-        if not sklad_item and not (article_number and name):
-            raise ValidationError('Моля изберете артикул от склад или въведете артикул номер и наименование.')
+        # Only validate that name is provided (article_number is optional for services/labor)
+        if not name:
+            raise ValidationError('Моля въведете наименование на артикула/услугата.')
         
         return cleaned_data
 
@@ -1001,6 +1002,9 @@ class OrderItemForm(forms.ModelForm):
         self.fields['purchase_price'].required = True
         self.fields['quantity'].required = True
         
+        # Article number is optional (for services/labor)
+        self.fields['article_number'].required = False
+        
         # Populate unit choices from database
         from .models import Sklad
         units = Sklad.objects.values_list('unit', flat=True).distinct().order_by('unit')
@@ -1009,13 +1013,11 @@ class OrderItemForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        sklad_item = cleaned_data.get('sklad_item')
-        article_number = cleaned_data.get('article_number')
         name = cleaned_data.get('name')
         
-        # Validate that either sklad_item is selected or standalone info is provided
-        if not sklad_item and not (article_number and name):
-            raise ValidationError('Моля изберете артикул от склад или въведете артикул номер и наименование.')
+        # Only validate that name is provided (article_number is optional for services/labor)
+        if not name:
+            raise ValidationError('Моля въведете наименование на артикула/услугата.')
         
         return cleaned_data
 

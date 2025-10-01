@@ -1461,7 +1461,7 @@ function initializeSkladModal() {
             return;
         }
         
-        const currentPage = pagination.current_page;
+        const currentPageNum = pagination.current_page;
         const totalPages = pagination.total_pages;
         const maxVisiblePages = 7; // Show max 7 page numbers
         
@@ -1474,7 +1474,7 @@ function initializeSkladModal() {
         }
         
         // Calculate which pages to show
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let startPage = Math.max(1, currentPageNum - Math.floor(maxVisiblePages / 2));
         let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
         
         // Adjust start page if we're near the end
@@ -1500,7 +1500,7 @@ function initializeSkladModal() {
         // Page numbers
         for (let i = startPage; i <= endPage; i++) {
             const pageLi = document.createElement('li');
-            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageLi.className = `page-item ${i === currentPageNum ? 'active' : ''}`;
             pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
             paginationList.appendChild(pageLi);
         }
@@ -1953,7 +1953,7 @@ function initializeCarModal() {
             return;
         }
         
-        const currentPage = pagination.current_page;
+        const currentPageNum = pagination.current_page;
         const totalPages = pagination.total_pages;
         const maxVisiblePages = 7;
         
@@ -1966,7 +1966,7 @@ function initializeCarModal() {
         }
         
         // Calculate which pages to show
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let startPage = Math.max(1, currentPageNum - Math.floor(maxVisiblePages / 2));
         let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
         
         if (endPage - startPage + 1 < maxVisiblePages) {
@@ -1991,7 +1991,7 @@ function initializeCarModal() {
         // Page numbers
         for (let i = startPage; i <= endPage; i++) {
             const pageLi = document.createElement('li');
-            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageLi.className = `page-item ${i === currentPageNum ? 'active' : ''}`;
             pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
             paginationList.appendChild(pageLi);
         }
